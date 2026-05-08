@@ -44,7 +44,7 @@
 #include "tufty_sdcard.h"
 /*============================ MACROS ========================================*/
 #ifndef TUFTY_SDCARD_RUN_PERF_TEST
-#   define TUFTY_SDCARD_RUN_PERF_TEST 1
+#   define TUFTY_SDCARD_RUN_PERF_TEST 0
 #endif
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
