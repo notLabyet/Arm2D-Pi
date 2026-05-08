@@ -40,9 +40,28 @@
 #include "tufty_sdcard.h"
 #include "tufty_qoi_scene.h"
 #include "tufty_lmsk_scene.h"
+#include "ir_test.h"
+#include "light_test.h"
+#include "buzzer_test.h"
 /*============================ MACROS ========================================*/
 #ifndef TUFTY_SDCARD_RUN_PERF_TEST
 #   define TUFTY_SDCARD_RUN_PERF_TEST 0
+#endif
+
+#ifndef TUFTY_IR_TEST_ENABLE
+#   define TUFTY_IR_TEST_ENABLE 0
+#endif
+
+#ifndef TUFTY_LIGHT_TEST_ENABLE
+#   define TUFTY_LIGHT_TEST_ENABLE 1
+#endif
+
+#ifndef TUFTY_IMU_SAMPLE_ENABLE
+#   define TUFTY_IMU_SAMPLE_ENABLE 0
+#endif
+
+#ifndef TUFTY_BUZZER_TEST_ENABLE
+#   define TUFTY_BUZZER_TEST_ENABLE 1
 #endif
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
@@ -83,8 +102,8 @@ static demo_scene_t const c_SceneLoaders[] = {
 #else
     {
         .fnLoader = 
-        tufty_lmsk_scene_loader,
-        //tufty_qoi_scene_loader,
+        tufty_qoi_scene_loader,
+        //tufty_lmsk_scene_loader,
         //scene_large_lmsk_loader,
         //scene_qoi_animation_loader,
         //scene_lmsk_loader,
@@ -222,18 +241,36 @@ int main(void)
 	sleep_ms(10);
 
 	bm8563_hander_init();
+#if TUFTY_IR_TEST_ENABLE
+    ir_test_init(IR_TEST_CARRIER_HZ, IR_TEST_DUTY_PERMILLE);
+#endif
+#if TUFTY_LIGHT_TEST_ENABLE
+    light_test_init();
+#endif
+#if TUFTY_BUZZER_TEST_ENABLE
+    buzzer_test_init();
+#endif
 
     while (true) {
         uint32_t const wNow = get_system_ms();
 
-		if(qmi8658_init_ret && ((uint32_t)(wNow - wLastIMUSampleMS) >= 10)){
+		if(TUFTY_IMU_SAMPLE_ENABLE && qmi8658_init_ret && ((uint32_t)(wNow - wLastIMUSampleMS) >= 10)){
             wLastIMUSampleMS = wNow;
 			QMI8658A_ReadData(DATA_GY_ACC);
-            usb_mouse_update_imu_raw(DATA_GY_ACC);
+//            usb_mouse_update_imu_raw(DATA_GY_ACC);
 		}
 //		bm8563_read(&tbm8563, &bm_time);
 		power_task();
-        usb_mouse_task();
+//        usb_mouse_task();
+#if TUFTY_IR_TEST_ENABLE
+        ir_test_task();
+#endif
+#if TUFTY_LIGHT_TEST_ENABLE
+        light_test_task();
+#endif
+#if TUFTY_BUZZER_TEST_ENABLE
+        buzzer_test_task();
+#endif
         disp_adapter0_task(60);
 
         if (!s_tDemoCTRL.bIsTimeout) {

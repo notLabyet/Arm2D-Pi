@@ -11,12 +11,14 @@ static void fatfs_io_close(uintptr_t target, void *loader);
 static bool fatfs_io_seek(uintptr_t target, void *loader, int32_t offset, int32_t whence);
 static intptr_t fatfs_io_tell(uintptr_t target, void *loader);
 static size_t fatfs_io_read(uintptr_t target, void *loader, uint8_t *buffer, size_t size);
+#if ARM_LOADER_IO_FATFS_USE_CACHE
 static void fatfs_io_invalidate_cache(arm_loader_io_fatfs_t *io);
 static arm_loader_io_fatfs_cache_t *fatfs_io_find_cache(arm_loader_io_fatfs_t *io,
                                                         FSIZE_t position,
                                                         size_t size);
 static arm_loader_io_fatfs_cache_t *fatfs_io_load_cache(arm_loader_io_fatfs_t *io,
                                                         FSIZE_t position);
+#endif
 
 const arm_loader_io_t ARM_LOADER_IO_FATFS = {
     .fnOpen = fatfs_io_open,
@@ -71,7 +73,9 @@ static bool fatfs_io_open(uintptr_t target, void *loader)
     io->is_open = true;
     io->file_size = f_size(&io->file);
     io->position = 0;
+#if ARM_LOADER_IO_FATFS_USE_CACHE
     fatfs_io_invalidate_cache(io);
+#endif
     return true;
 }
 
@@ -83,7 +87,9 @@ static void fatfs_io_close(uintptr_t target, void *loader)
 
     if ((NULL != io) && io->is_open) {
         (void)f_close(&io->file);
+#if ARM_LOADER_IO_FATFS_USE_CACHE
         fatfs_io_invalidate_cache(io);
+#endif
         io->is_open = false;
     }
 }
@@ -156,6 +162,34 @@ static size_t fatfs_io_read(uintptr_t target, void *loader, uint8_t *buffer, siz
         return 0;
     }
 
+#if !ARM_LOADER_IO_FATFS_USE_CACHE
+    while ((total_read < size) && (io->position < io->file_size)) {
+        UINT request;
+        UINT bytes_read = 0;
+        FRESULT fr;
+
+        request = (UINT)MIN((FSIZE_t)(size - total_read), io->file_size - io->position);
+
+        fr = f_lseek(&io->file, io->position);
+        if (FR_OK != fr) {
+            printf("FatFs IO seek failed: %s (%d)\r\n", FRESULT_str(fr), fr);
+            break;
+        }
+
+        fr = f_read(&io->file, &dst[total_read], request, &bytes_read);
+        if (FR_OK != fr) {
+            printf("FatFs IO read failed: %s (%d)\r\n", FRESULT_str(fr), fr);
+            break;
+        }
+
+        if (0u == bytes_read) {
+            break;
+        }
+
+        total_read += bytes_read;
+        io->position += (FSIZE_t)bytes_read;
+    }
+#else
     while ((total_read < size) && (io->position < io->file_size)) {
         arm_loader_io_fatfs_cache_t *cache;
         FSIZE_t cache_offset;
@@ -178,10 +212,12 @@ static size_t fatfs_io_read(uintptr_t target, void *loader, uint8_t *buffer, siz
         total_read += copy_count;
         io->position += (FSIZE_t)copy_count;
     }
+#endif
 
     return total_read;
 }
 
+#if ARM_LOADER_IO_FATFS_USE_CACHE
 static void fatfs_io_invalidate_cache(arm_loader_io_fatfs_t *io)
 {
     if (NULL == io) {
@@ -285,3 +321,4 @@ static arm_loader_io_fatfs_cache_t *fatfs_io_load_cache(arm_loader_io_fatfs_t *i
 
     return cache;
 }
+#endif

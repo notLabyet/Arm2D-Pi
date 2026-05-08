@@ -480,6 +480,36 @@
               <FileType>5</FileType>
               <FilePath>..\..\application\tufty_lmsk_scene.h</FilePath>
             </File>
+            <File>
+              <FileName>ir_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\application\ir_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>ir_test.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\application\ir_test.h</FilePath>
+            </File>
+            <File>
+              <FileName>light_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\application\light_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>light_test.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\application\light_test.h</FilePath>
+            </File>
+            <File>
+              <FileName>buzzer_test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\application\buzzer_test.c</FilePath>
+            </File>
+            <File>
+              <FileName>buzzer_test.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\application\buzzer_test.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
