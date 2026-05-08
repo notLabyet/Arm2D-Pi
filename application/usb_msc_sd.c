@@ -37,6 +37,10 @@ static bool usb_msc_sd_ensure_ready(void)
 {
     LBA_t sector_count = 0;
 
+    if (tufty_sdcard_is_mounted()) {
+        return false;
+    }
+
     if (s_msc_ready) {
         return true;
     }
@@ -107,6 +111,11 @@ bool tud_msc_test_unit_ready_cb(uint8_t lun)
 {
     (void)lun;
 
+    if (tufty_sdcard_is_mounted()) {
+        tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x04, 0x01);
+        return false;
+    }
+
     if (!usb_msc_sd_ensure_ready()) {
         tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x3a, 0x00);
         return false;
@@ -118,6 +127,12 @@ bool tud_msc_test_unit_ready_cb(uint8_t lun)
 void tud_msc_capacity_cb(uint8_t lun, uint32_t *block_count, uint16_t *block_size)
 {
     (void)lun;
+
+    if (tufty_sdcard_is_mounted()) {
+        *block_count = 0u;
+        *block_size = USB_MSC_SD_BLOCK_SIZE;
+        return;
+    }
 
     (void)usb_msc_sd_ensure_ready();
 
@@ -283,7 +298,9 @@ bool tud_msc_start_stop_cb(uint8_t lun,
 
     if ((!start) || load_eject) {
         s_msc_sync_count++;
-        (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
+        if (!tufty_sdcard_is_mounted()) {
+            (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
+        }
         USB_MSC_STATS_PRINTF("USB MSC stop/eject sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
                              (unsigned long)s_msc_sync_count,
                              (unsigned long)s_msc_write10_count,
@@ -308,7 +325,9 @@ int32_t tud_msc_scsi_cb(uint8_t lun,
 
         case USB_MSC_SCSI_CMD_SYNCHRONIZE_CACHE_10:
             s_msc_sync_count++;
-            (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
+            if (!tufty_sdcard_is_mounted()) {
+                (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
+            }
             USB_MSC_STATS_PRINTF("USB MSC sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
                                  (unsigned long)s_msc_sync_count,
                                  (unsigned long)s_msc_write10_count,

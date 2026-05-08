@@ -12,6 +12,7 @@ extern "C" {
 
 FRESULT tufty_sdcard_mount(void);
 void tufty_sdcard_unmount(void);
+bool tufty_sdcard_is_mounted(void);
 bool tufty_sdcard_write_test_file(void);
 bool tufty_sdcard_read_write_test(void);
 FRESULT tufty_sdcard_write_file(const char *path,

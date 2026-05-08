@@ -450,6 +450,26 @@
               <FileType>1</FileType>
               <FilePath>..\..\application\tufty_sdcard.c</FilePath>
             </File>
+            <File>
+              <FileName>arm_loader_io_fatfs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\application\arm_loader_io_fatfs.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_loader_io_fatfs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\application\arm_loader_io_fatfs.h</FilePath>
+            </File>
+            <File>
+              <FileName>tufty_qoi_scene.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\application\tufty_qoi_scene.c</FilePath>
+            </File>
+            <File>
+              <FileName>tufty_qoi_scene.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\application\tufty_qoi_scene.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -219,6 +219,11 @@ void tufty_sdcard_unmount(void)
     }
 }
 
+bool tufty_sdcard_is_mounted(void)
+{
+    return s_sd_mounted;
+}
+
 bool tufty_sdcard_write_test_file(void)
 {
     FIL file;

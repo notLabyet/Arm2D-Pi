@@ -42,6 +42,7 @@
 #include "usb_msc_sd.h"
 #include "hardware/clocks.h"
 #include "tufty_sdcard.h"
+#include "tufty_qoi_scene.h"
 /*============================ MACROS ========================================*/
 #ifndef TUFTY_SDCARD_RUN_PERF_TEST
 #   define TUFTY_SDCARD_RUN_PERF_TEST 0
@@ -87,7 +88,7 @@ static demo_scene_t const c_SceneLoaders[] = {
 #else
     {
         .fnLoader = 
-        scene_warped_dial_loader,
+        tufty_qoi_scene_loader,
         //scene_large_lmsk_loader,
         //scene_qoi_animation_loader,
         //scene_lmsk_loader,
