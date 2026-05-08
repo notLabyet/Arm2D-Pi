@@ -3,6 +3,8 @@
 #include "hardware/gpio.h"
 #include "bsp_cfg.h"
 #include "pico/binary_info.h"
+#include "pico/stdlib.h"
+#include <stdio.h>
 //char iic0_read_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len)
 //{
 //	uint8_t ret = 0;
@@ -36,7 +38,8 @@
 uint8_t qmi8658c_init()
 {
 	uint8_t ret = 0;
-	i2c_init(I2C_PORT,100*1000);
+	uint32_t start_ms = to_ms_since_boot(get_absolute_time());
+	i2c_init(I2C_PORT,400*1000);
 	gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
@@ -47,6 +50,9 @@ uint8_t qmi8658c_init()
 	
 	
 	ret = QMI8658A_Init();;
+	printf("QMI8658 init %s: %lu ms\r\n",
+	       ret ? "OK" : "FAIL",
+	       (unsigned long)(to_ms_since_boot(get_absolute_time()) - start_ms));
 	return ret;
 }
 

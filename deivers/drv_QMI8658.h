@@ -21,6 +21,20 @@ char iic0_write_bytes(unsigned char addr,unsigned char reg, unsigned char *value
 #define MIN_COLLECTION_COUNT 1000  // 最小采集数据次数
 #define USED_DATA_COUNT 50       // 用于计算平均值的数据数量
 #define STATIONARY_THRESHOLD 0.001  // 判断静止的加速度模长差值阈值
+
+// Startup speed first: default init only configures the sensor.
+// Set these macros to 1 for factory self-test, COD, or still calibration.
+#ifndef QMI8658_STARTUP_SELF_TEST
+#define QMI8658_STARTUP_SELF_TEST 0
+#endif
+
+#ifndef QMI8658_STARTUP_COD
+#define QMI8658_STARTUP_COD 0
+#endif
+
+#ifndef QMI8658_STARTUP_STILL_CALIBRATION
+#define QMI8658_STARTUP_STILL_CALIBRATION 0
+#endif
 // 存储陀螺仪校准值
 extern float GyrCompensate[6];
 

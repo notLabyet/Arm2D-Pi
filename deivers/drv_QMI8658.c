@@ -1,5 +1,24 @@
 #include "drv_qmi8658.h"
 #include "pico/stdlib.h"
+#ifndef QMI8658_STARTUP_SELF_TEST
+#define QMI8658_STARTUP_SELF_TEST 0
+#endif
+
+#ifndef QMI8658_STARTUP_COD
+#define QMI8658_STARTUP_COD 0
+#endif
+
+#ifndef QMI8658_STARTUP_STILL_CALIBRATION
+#define QMI8658_STARTUP_STILL_CALIBRATION 0
+#endif
+
+#ifndef QMI8658_RESET_TIMEOUT_MS
+#define QMI8658_RESET_TIMEOUT_MS 50u
+#endif
+
+#ifndef QMI8658_CTRL9_TIMEOUT_MS
+#define QMI8658_CTRL9_TIMEOUT_MS 50u
+#endif
 
 // IIC读写函数实现
 char iic0_read_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len)
@@ -21,7 +40,10 @@ char iic0_read_bytes(unsigned char addr,unsigned char reg, unsigned char *value,
 char iic0_write_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len)
 {
 	uint8_t ret = 0;
-	uint8_t buf[10];
+	uint8_t buf[16];
+	if ((len + 1u) > sizeof(buf)) {
+		return 0;
+	}
 	buf[0] = reg;
 	memcpy(&buf[1],value,len);
 	if( i2c_write_blocking(I2C_PORT,addr,buf, len+1,false) < 0){
@@ -48,7 +70,44 @@ static unsigned char i2cwrite(uint8_t addr, uint8_t Data) {
 static unsigned char i2cwrites(uint8_t addr, uint8_t length, const uint8_t *Data) {
     return iic0_write_bytes(Device_Address, addr, (uint8_t *)Data, length);
 }
+static uint8_t qmi8658_wait_reg_bits(uint8_t reg,
+                                     uint8_t mask,
+                                     uint8_t expected,
+                                     uint32_t timeout_ms)
+{
+    uint8_t data = 0;
+    uint32_t start = to_ms_since_boot(get_absolute_time());
 
+    do {
+        if (!i2cread(reg, &data)) {
+            sleep_ms(1);
+            continue;
+        }
+        if ((data & mask) == expected) {
+            return 1;
+        }
+        sleep_ms(1);
+    } while ((uint32_t)(to_ms_since_boot(get_absolute_time()) - start) < timeout_ms);
+
+    return 0;
+}
+
+static uint8_t qmi8658_send_ctrl9_cmd(uint8_t cmd)
+{
+    if (!i2cwrite(CTRL9, cmd)) {
+        return 0;
+    }
+
+    if (!qmi8658_wait_reg_bits(STATUSINT, 0x80u, 0x80u, QMI8658_CTRL9_TIMEOUT_MS)) {
+        return 0;
+    }
+
+    if (!i2cwrite(CTRL9, 0x00)) {
+        return 0;
+    }
+
+    return qmi8658_wait_reg_bits(STATUSINT, 0x80u, 0x00u, QMI8658_CTRL9_TIMEOUT_MS);
+}
 	uint8_t reg_data__[100];
 
 // 定义一个数组存储所有命令信恿
@@ -453,181 +512,74 @@ int QMI8658A_Init(void)
 {
     uint8_t data = 0;
 
-    // 1. 复位QMI8658A传感噿
-    // 向复位寄存器RESET写入0xB0，触发传感器复位操作
-    if (!i2cwrite(RESET, 0xB0))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "发送复位命令失败！");
-        return 0;
-    }
-    // 延时100毫秒，等待复位操作完房
-    sleep_ms(100);
-
-    // 读取复位状怿
-    // 从dQY_L寄存器读取复位状态数据到变量data
-    if (!i2cread(dQY_L, &data))
-    {
-        // 若读取失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "读取复位状态失败！");
+    if (!i2cwrite(RESET, 0xB0)) {
         return 0;
     }
 
-    // 检查复位状怿
-    // 判断读取到的复位状态数据是否为0x80，若不是则表示复位失贿
-    if (data != 0x80)
-    {
-        // 记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "复位失败＿);
+    if (!qmi8658_wait_reg_bits(dQY_L, 0x80u, 0x80u, QMI8658_RESET_TIMEOUT_MS)) {
         return 0;
     }
 
-    // 2. 配置通讯方式和中断引脿
-    // 向寄存器CTRL1写入0x60，配置传感器的通讯方式和中断引脿
-    if (!i2cwrite(CTRL1, 0x60))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "配置通讯方式和中断引脚失败！");
+    if (!i2cread(WHO_AM_I, &data)) {
+        return 0;
+    }
+    if (data != 0x05u) {
         return 0;
     }
 
-    // 3. 加速度计自检
-    // 调用Acc_Self_Test函数进行加速度计自检
-    if (!Acc_Self_Test())
-    {
-        // 若自检失败，记录错误日志并返回0表示初始化失贿
-        // ESP_LOGE(TAG, "加速度计自检失败＿);
+    if (!i2cwrite(CTRL1, 0x60)) {
         return 0;
     }
 
-    // 4. 陀螺仪自检
-    // 调用Gyr_Self_Test函数进行陀螺仪自检
-    if (!Gyr_Self_Test())
-    {
-        // 若自检失败，记录错误日志并返回0表示初始化失贿
-        // ESP_LOGE(TAG, "陀螺仪自检失败＿);
+#if QMI8658_STARTUP_SELF_TEST
+    if (!Acc_Self_Test()) {
+        return 0;
+    }
+    if (!Gyr_Self_Test()) {
+        return 0;
+    }
+#endif
+
+    if (!i2cwrite(CTRL2, 0x33)) {
         return 0;
     }
 
-    // 5. 配置加速度访
-    // 向寄存器CTRL2写入0x33，禁用加速度自检，设置量程为16G，输出数据速率丿96.8Hz
-    if (!i2cwrite(CTRL2, 0x33))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "配置加速度计失败！");
+    if (!i2cwrite(CTRL3, 0x73)) {
         return 0;
     }
 
-    // 6. 配置陀螺仪
-    // 向寄存器CTRL3写入0x73，禁用陀螺仪自检，设置量程为2048dps，输出数据速率丿96.8Hz
-    if (!i2cwrite(CTRL3, 0x73))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "配置陀螺仪计失败！");
+    if (!i2cwrite(CTRL5, 0x35)) {
         return 0;
     }
 
-    // 7. 配置低通滤波器
-    // 向寄存器CTRL5写入0x35，配置低通滤波器丿.63%
-    if (!i2cwrite(CTRL5, 0x35))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "配置低通滤波器失败＿);
+    if (!i2cwrite(CAL1_L, 0x01)) {
+        return 0;
+    }
+    if (!qmi8658_send_ctrl9_cmd(0x12)) {
         return 0;
     }
 
-    // 8. 使用锁定机制
-    // 8.1 禁用内部AHB时钟
-    // 向CAL1_L寄存器写兿x01
-    if (!i2cwrite(CAL1_L, 0x01))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "CAL1_L寄存器写入失败！");
+    if (!i2cwrite(CTRL7, 0x83)) {
         return 0;
     }
-    // 在CTRL9协议中写兿x12（CTRL_CMD_AHB_CLOCK_GATING＿
-    if (!i2cwrite(CTRL9, 0x12))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "发送CTRL_CMD_ON_DEMAND_CALIBRATION＿x12）指令失败！");
+    sleep_ms(2);
+
+#if QMI8658_STARTUP_COD
+    if (!Gyr_COD()) {
         return 0;
     }
-    // 等待10毫秒，让QMI8658A完成CTRL9命令
-    sleep_ms(10);
+#endif
 
-    // 8.2 等待STATUSINT笿位为1
-    // 初始化data丿x00
-    data = 0x00;
-    // 循环读取STATUSINT寄存器，直到其第7位变丿
-    while (((data >> 7) & 0x01) == 0)
-    {
-        // 读取STATUSINT寄存器的值到data
-        if (!i2cread(STATUSINT, &data))
-        {
-            // 若读取失败，记录错误日志并返囿表示初始化失贿
-            // ESP_LOGE(TAG, "读取STATUSINT状态失败！");
-            return 0;
-        }
-    }
-
-    // 8.3 向CTRL9寄存器写入CTRL_CMD_ACK＿x00）来确认
-    // 向寄存器CTRL9写入0x00，确认操使
-    if (!i2cwrite(CTRL9, 0x00))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "发送CTRL_CMD_ACK＿x00）指令失败！");
+#if QMI8658_STARTUP_STILL_CALIBRATION
+    if (!calibration_ACC_GYR(GyrCompensate)) {
         return 0;
     }
+#else
+    memset(GyrCompensate, 0, sizeof(GyrCompensate));
+#endif
 
-    // 8.4 等待STATUSINT笿位为0
-    // 初始化data丿xFF
-    data = 0xFF;
-    // 循环读取STATUSINT寄存器，直到其第7位变丿
-    while (((data >> 7) & 0x01) == 1)
-    {
-        // 读取STATUSINT寄存器的值到data
-        if (!i2cread(STATUSINT, &data))
-        {
-            // 若读取失败，记录错误日志并返囿表示初始化失贿
-            // ESP_LOGE(TAG, "读取STATUSINT状态失败！");
-            return 0;
-        }
-    }
-
-    // 9. 开启加速度计和陀螺仪，同步采样模弿
-    // 向寄存器CTRL7写入0x83，开启加速度计和陀螺仪的同步采样模弿
-    if (!i2cwrite(CTRL7, 0x83))
-    {
-        // 若写入失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "启加速度计和陀螺仪,同步采样模式失败＿);
-        return 0;
-    }
-    // 延时10毫秒，等待模式开启完房
-    sleep_ms(10);
-
-    // 10. 陀螺仪自带校准
-    // 调用Gyr_COD函数进行陀螺仪自带校准
-    if (!Gyr_COD())
-    {
-        // 若校准失败，记录错误日志并返囿表示初始化失贿
-        // ESP_LOGE(TAG, "陀螺仪校准失败＿);
-        return 0;
-    }
-    // 延时100毫秒，等待校准完房
-    sleep_ms(100);
-
-    // 11. 陀螺仪手动校准
-    // 循环调用calibrationGYR函数进行陀螺仪手动校准，直到校准成势
-    while (!calibration_ACC_GYR(GyrCompensate))
-    {
-    }
-
-    // 12. 初始化成势
-    // 记录日志表示传感器初始化成功，并返回1
-    // ESP_LOGE(TAG, "初始化成功！");
     return 1;
 }
-
 
 
 /**
