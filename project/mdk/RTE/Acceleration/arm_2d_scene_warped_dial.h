@@ -98,7 +98,7 @@ struct user_scene_warped_dial_t {
 
 ARM_PRIVATE(
     /* place your private member here, following two are examples */
-    int64_t lTimestamp[2];
+    int64_t lTimestamp[1];
     bool bUserAllocated;
     bool bDirtyRegionOptimizationStatus;
     uint16_t iTargetNumber;
@@ -119,12 +119,6 @@ ARM_PRIVATE(
     } Tracking;
 
     ring_indication_t tIndicator;
-    
-    struct {
-        arm_zhrgb565_loader_t tLoader;
-        arm_2d_helper_dirty_region_item_t tDirtyRegionItem;
-        arm_2d_helper_film_t tFilm;
-    } Animation;
 )
     /* place your public member here */
     

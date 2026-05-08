@@ -51,13 +51,13 @@ static bool fatfs_io_open(uintptr_t target, void *loader)
 
     fr = tufty_sdcard_mount();
     if (FR_OK != fr) {
-        printf("QOI SD mount failed: %s (%d)\r\n", FRESULT_str(fr), fr);
+        printf("FatFs IO SD mount failed: %s (%d)\r\n", FRESULT_str(fr), fr);
         return false;
     }
 
     fr = f_open(&io->file, io->path, FA_READ);
     if (FR_OK != fr) {
-        printf("QOI open %s failed: %s (%d)\r\n", io->path, FRESULT_str(fr), fr);
+        printf("FatFs IO open %s failed: %s (%d)\r\n", io->path, FRESULT_str(fr), fr);
         tufty_sdcard_unmount();
         return false;
     }
@@ -143,7 +143,7 @@ static size_t fatfs_io_read(uintptr_t target, void *loader, uint8_t *buffer, siz
 
     fr = f_read(&io->file, buffer, (UINT)size, &bytes_read);
     if (FR_OK != fr) {
-        printf("QOI read failed: %s (%d)\r\n", FRESULT_str(fr), fr);
+        printf("FatFs IO read failed: %s (%d)\r\n", FRESULT_str(fr), fr);
         return 0;
     }
 

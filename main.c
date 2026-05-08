@@ -23,6 +23,7 @@
 #include "arm_2d_helper.h"
 #include "arm_2d_disp_adapters.h"
 #include "arm_2d_scenes.h"
+#include "arm_2d_scene_radars.h"
 
 #ifdef RTE_Acceleration_Arm_2D_Extra_Benchmark
 #   include "arm_2d_benchmark.h"
@@ -38,6 +39,7 @@
 #include "hardware/clocks.h"
 #include "tufty_sdcard.h"
 #include "tufty_qoi_scene.h"
+#include "tufty_lmsk_scene.h"
 /*============================ MACROS ========================================*/
 #ifndef TUFTY_SDCARD_RUN_PERF_TEST
 #   define TUFTY_SDCARD_RUN_PERF_TEST 0
@@ -48,6 +50,12 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
+
+void scene_radars_loader(void)
+{
+    arm_2d_scene_radars_init(&DISP0_ADAPTER);
+}
+
 
 
 
@@ -75,7 +83,8 @@ static demo_scene_t const c_SceneLoaders[] = {
 #else
     {
         .fnLoader = 
-        tufty_qoi_scene_loader,
+        tufty_lmsk_scene_loader,
+        //tufty_qoi_scene_loader,
         //scene_large_lmsk_loader,
         //scene_qoi_animation_loader,
         //scene_lmsk_loader,

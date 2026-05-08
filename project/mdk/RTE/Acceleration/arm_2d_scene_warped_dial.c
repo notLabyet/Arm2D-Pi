@@ -116,7 +116,7 @@ __spin_zoom_widget_indication_t c_tIndicatorValueMapping = {
     },
     .UpperLimit = {
         .fAngleInDegree = 360.0f - 45.0f,
-        .nValue = 250,
+        .nValue = 999,
     },
     .Step = {
         .fAngle = 0.0f,  //! 0.0f means very smooth, 1.0f looks like mech watches, 6.0f looks like wall clocks
@@ -136,8 +136,6 @@ static void __on_scene_warped_dial_load(arm_2d_scene_t *ptScene)
     arm_lmsk_loader_on_load(&this.LMSK.tHelper);
 #endif
 
-    arm_zhrgb565_loader_on_load(&this.Animation.tLoader);
-
     arm_2d_helper_dirty_region_add_items(   
                                 &this.use_as__arm_2d_scene_t.tDirtyRegionHelper,
                                 &this.Tracking.tDirtyRegionItem, 
@@ -149,11 +147,6 @@ static void __on_scene_warped_dial_load(arm_2d_scene_t *ptScene)
     this.Tracking.tDirtyRegionItem.tRegionPatch.tLocation.iY = -12;
 
     ring_indication_on_load(&this.tIndicator);
-    
-    arm_2d_helper_dirty_region_add_items(   
-                                &this.use_as__arm_2d_scene_t.tDirtyRegionHelper,
-                                &this.Animation.tDirtyRegionItem,
-                                1);
 
     this.bDirtyRegionOptimizationStatus 
         = arm_2d_helper_pfb_disable_dirty_region_optimization(
@@ -177,16 +170,9 @@ static void __on_scene_warped_dial_depose(arm_2d_scene_t *ptScene)
     arm_lmsk_loader_depose(&this.LMSK.tHelper);
 #endif
 
-    arm_zhrgb565_loader_depose(&this.Animation.tLoader);
-
     arm_2d_helper_dirty_region_remove_items(   
                                 &this.use_as__arm_2d_scene_t.tDirtyRegionHelper,
                                 &this.Tracking.tDirtyRegionItem, 
-                                1);
-
-    arm_2d_helper_dirty_region_remove_items(   
-                                &this.use_as__arm_2d_scene_t.tDirtyRegionHelper,
-                                &this.Animation.tDirtyRegionItem,
                                 1);
 
     ring_indication_depose(&this.tIndicator);
@@ -276,10 +262,10 @@ static void __on_scene_warped_dial_frame_start(arm_2d_scene_t *ptScene)
     do {
 
         /* generate a new position every 2000 sec */
-        if (arm_2d_helper_is_time_out(1000,  &this.lTimestamp[0])) {
+        if (arm_2d_helper_is_time_out(4000,  &this.lTimestamp[0])) {
             this.lTimestamp[0] = 0;
             srand(arm_2d_helper_get_system_timestamp());
-            this.iTargetNumber = 120 + rand() % 100;
+            this.iTargetNumber = rand() % 1000;
         }
 
         if (ring_indication_on_frame_start(&this.tIndicator, this.iTargetNumber)) {
@@ -316,22 +302,6 @@ static void __on_scene_warped_dial_frame_start(arm_2d_scene_t *ptScene)
 #if ARM_2D_DEMO_WARPED_DIAL_USE_LMSK
     arm_lmsk_loader_on_frame_start(&this.LMSK.tHelper);
 #endif
-
-    if (arm_2d_helper_is_time_out( this.Animation.tFilm.hwPeriodPerFrame , &this.lTimestamp[1])) {
-
-        arm_2d_helper_film_next_frame(&this.Animation.tFilm);
-
-        arm_2d_helper_dirty_region_item_suspend_update(
-            &this.Animation.tDirtyRegionItem,
-            false);
-
-    } else {
-        arm_2d_helper_dirty_region_item_suspend_update(
-            &this.Animation.tDirtyRegionItem,
-            true);
-    }
-
-    arm_zhrgb565_loader_on_frame_start(&this.Animation.tLoader);
 }
 
 static void __on_scene_warped_dial_frame_complete(arm_2d_scene_t *ptScene)
@@ -371,143 +341,122 @@ IMPL_PFB_ON_DRAW(__pfb_draw_scene_warped_dial_handler)
     arm_2d_canvas(ptTile, __top_canvas) {
     /*-----------------------draw the scene begin-----------------------*/
 
-        arm_2d_dock_left(__top_canvas, 160) {
-        
-            arm_2d_align_centre(__left_region, 
-                                this.Animation.tFilm.tTile.tRegion.tSize) {
-                
-                arm_2d_tile_copy_only(  &this.Animation.tFilm.tTile,
-                                        ptTile, 
-                                        &__centre_region);
-            
-                arm_2d_helper_dirty_region_update_item( 
-                                            &this.Animation.tDirtyRegionItem,
-                                            ptTile,
-                                            NULL,
-                                            &__centre_region);
-            }
+        arm_2d_align_centre(__top_canvas, 
+                            ring_indication_get_size(&this.tIndicator)) {
+
+        #if ARM_2D_DEMO_WARPED_DIAL_USE_LMSK
+            arm_2d_fill_colour_with_mask_and_opacity(   
+                                    ptTile,
+                                    &__centre_region,
+                                    &INDICATION_IMAGE_MASK, 
+                                    (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
+                                    64);
+        #else
+            arm_2d_fill_colour_with_mask_and_opacity(   
+                                    ptTile,
+                                    &__centre_region,
+                                    &INDICATION_IMAGE_MASK, 
+                                    (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
+                                    64);
+        #endif
+
+            ARM_2D_OP_WAIT_ASYNC();
+        }
+
+        arm_2d_align_centre(__top_canvas, 
+                            INDICATION_IMAGE_MASK.tRegion.tSize) {
+
+        #if ARM_2D_DEMO_WARPED_DIAL_USE_LMSK
+            arm_2d_fill_colour_with_mask_and_opacity(   
+                                    ptTile,
+                                    &__centre_region,
+                                    &INDICATION_IMAGE_MASK, 
+                                    (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
+                                    64);
+        #else
+            arm_2d_fill_colour_with_mask_and_opacity(   
+                                    ptTile,
+                                    &__centre_region,
+                                    &INDICATION_IMAGE_MASK, 
+                                    (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
+                                    64);
+        #endif
+
+            ARM_2D_OP_WAIT_ASYNC();
 
         }
 
-        arm_2d_dock_right(__top_canvas, 240) {
-            arm_2d_align_centre_open(__right_region, 
-                                ring_indication_get_size(&this.tIndicator)) {
+        ring_indication_show(   &this.tIndicator, 
+                                ptTile, 
+                                NULL,
+                                bIsNewFrame);
 
-                __centre_region.tLocation.iX += 20;
-            #if ARM_2D_DEMO_WARPED_DIAL_USE_LMSK
-                arm_2d_fill_colour_with_mask_and_opacity(   
-                                        ptTile,
-                                        &__centre_region,
-                                        &INDICATION_IMAGE_MASK, 
-                                        (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
-                                        64);
-            #else
-                arm_2d_fill_colour_with_mask_and_opacity(   
-                                        ptTile,
-                                        &__centre_region,
-                                        &INDICATION_IMAGE_MASK, 
-                                        (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
-                                        64);
-            #endif
+        arm_2d_align_centre_open(__top_canvas, 1, 1) {
+            arm_2d_region_t tTrackingBox = __centre_region;
+            tTrackingBox.tLocation.iX += this.Tracking.tBox.iX;
+            tTrackingBox.tLocation.iY += this.Tracking.tBox.iY;
 
-                ARM_2D_OP_WAIT_ASYNC();
-            }
+            arm_2d_helper_dirty_region_update_item( &this.Tracking.tDirtyRegionItem, 
+                                                    ptTile,
+                                                    NULL,
+                                                    &tTrackingBox);
+        }
 
-            arm_2d_align_centre(__right_region, 
-                                INDICATION_IMAGE_MASK.tRegion.tSize) {
+        arm_lcd_text_force_char_use_same_width(true);
+        /* draw 3 digits numbers */
+        do {
+            
+            /* 3 digits */
+            arm_2d_size_t tTextSize 
+                = arm_lcd_printf_to_buffer(
+                    (const arm_2d_font_t *)&ARM_2D_FONT_ALARM_CLOCK_64_A4, 
+                    "%03d", 
+                    (int)ring_indication_get_current_value(&this.tIndicator));
 
-            #if ARM_2D_DEMO_WARPED_DIAL_USE_LMSK
-                arm_2d_fill_colour_with_mask_and_opacity(   
-                                        ptTile,
-                                        &__centre_region,
-                                        &INDICATION_IMAGE_MASK, 
-                                        (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
-                                        64);
-            #else
-                arm_2d_fill_colour_with_mask_and_opacity(   
-                                        ptTile,
-                                        &__centre_region,
-                                        &INDICATION_IMAGE_MASK, 
-                                        (__arm_2d_color_t){ GLCD_COLOR_LIGHT_GREY},
-                                        64);
-            #endif
+            tTextSize.iHeight += 16; 
 
-                ARM_2D_OP_WAIT_ASYNC();
-
-            }
-
-            ring_indication_show(   &this.tIndicator, 
-                                    ptTile, 
-                                    &__right_region,
-                                    bIsNewFrame);
-
-            arm_2d_align_centre_open(__right_region, 1, 1) {
-                arm_2d_region_t tTrackingBox = __centre_region;
-                tTrackingBox.tLocation.iX += this.Tracking.tBox.iX;
-                tTrackingBox.tLocation.iY += this.Tracking.tBox.iY;
-
-                arm_2d_helper_dirty_region_update_item( &this.Tracking.tDirtyRegionItem, 
-                                                        ptTile,
-                                                        NULL,
-                                                        &tTrackingBox);
-            }
-
-            arm_lcd_text_force_char_use_same_width(true);
-            /* draw 3 digits numbers */
-            do {
+            arm_2d_align_centre_open(__top_canvas,  tTextSize) {
                 
-                /* 3 digits */
-                arm_2d_size_t tTextSize 
-                    = arm_lcd_printf_to_buffer(
-                        (const arm_2d_font_t *)&ARM_2D_FONT_ALARM_CLOCK_64_A4, 
-                        "%03d", 
-                        (int)ring_indication_get_current_value(&this.tIndicator));
+                __centre_region.tLocation.iX += 40;
 
-                tTextSize.iHeight += 16; 
-
-                arm_2d_align_centre_open(__right_region,  tTextSize) {
+                __arm_2d_hint_optimize_for_pfb__(__centre_region) {
+                    arm_2d_layout(__centre_region) {
                     
-                    __centre_region.tLocation.iX += 40;
+                        arm_lcd_text_set_target_framebuffer(ptTile);
+                        /* print value */
+                        __item_line_vertical(tTextSize.iWidth, tTextSize.iHeight - 16) {
 
-                    __arm_2d_hint_optimize_for_pfb__(__centre_region) {
-                        arm_2d_layout(__centre_region) {
-                        
-                            arm_lcd_text_set_target_framebuffer(ptTile);
-                            /* print value */
-                            __item_line_vertical(tTextSize.iWidth, tTextSize.iHeight - 16) {
+                            arm_lcd_text_set_draw_region(&__item_region);
+                            arm_lcd_text_set_colour( GLCD_COLOR_NIXIE_TUBE, GLCD_COLOR_BLACK);
+                            arm_lcd_text_set_opacity(255 - 64);
 
-                                arm_lcd_text_set_draw_region(&__item_region);
-                                arm_lcd_text_set_colour( GLCD_COLOR_NIXIE_TUBE, GLCD_COLOR_BLACK);
-                                arm_lcd_text_set_opacity(255 - 64);
+                            arm_lcd_text_reset_display_region_tracking();
+                            arm_lcd_printf_buffer(0);
+                            arm_2d_helper_dirty_region_update_item(
+                                &this.use_as__arm_2d_scene_t.tDirtyRegionHelper.tDefaultItem,
+                                ptTile,
+                                &__item_region,
+                                arm_lcd_text_get_last_display_region());
 
-                                arm_lcd_text_reset_display_region_tracking();
-                                arm_lcd_printf_buffer(0);
-                                arm_2d_helper_dirty_region_update_item(
-                                    &this.use_as__arm_2d_scene_t.tDirtyRegionHelper.tDefaultItem,
-                                    ptTile,
-                                    &__item_region,
-                                    arm_lcd_text_get_last_display_region());
-
-                                arm_lcd_text_set_opacity(255);
-                            }
-                            
-                            /* print "Setting" */
-                            __item_line_vertical(tTextSize.iWidth,16) {
-                                arm_lcd_text_set_font((const arm_2d_font_t *)&ARM_2D_FONT_6x8);
-                                arm_lcd_text_set_draw_region(&__item_region);
-                                arm_lcd_text_set_colour( GLCD_COLOR_DARK_GREY, GLCD_COLOR_BLACK);
-                                arm_lcd_printf_label(ARM_2D_ALIGN_BOTTOM_CENTRE, "km/h");
-                            }
-
-                            arm_lcd_text_set_target_framebuffer(NULL);
+                            arm_lcd_text_set_opacity(255);
                         }
+                        
+                        /* print "Setting" */
+                        __item_line_vertical(tTextSize.iWidth,16) {
+                            arm_lcd_text_set_font((const arm_2d_font_t *)&ARM_2D_FONT_6x8);
+                            arm_lcd_text_set_draw_region(&__item_region);
+                            arm_lcd_text_set_colour( GLCD_COLOR_DARK_GREY, GLCD_COLOR_BLACK);
+                            arm_lcd_printf_label(ARM_2D_ALIGN_BOTTOM_CENTRE, "Setting");
+                        }
+
+                        arm_lcd_text_set_target_framebuffer(NULL);
                     }
                 }
-                
-            } while(0);
-            arm_lcd_text_force_char_use_same_width(false);
-        }
-        
+            }
+            
+        } while(0);
+        arm_lcd_text_force_char_use_same_width(false);
+
         /* draw text at the top-left corner */
         arm_lcd_text_set_target_framebuffer((arm_2d_tile_t *)ptTile);
         arm_lcd_text_set_font(&ARM_2D_FONT_6x8.use_as__arm_2d_font_t);
@@ -589,7 +538,7 @@ user_scene_warped_dial_t *__arm_2d_scene_warped_dial_init(
 #if ARM_2D_DEMO_WARPED_DIAL_USE_LMSK
     /* initialize LMSK loader */
     do {
-        extern const uint8_t c_lmskDashboardRing[3844];
+        extern const uint8_t c_lmskDashboardRing[3581];
 
         arm_loader_io_rom_init( &this.LMSK.LoaderIO.tROM, 
                                 (uintptr_t)c_lmskDashboardRing, 
@@ -652,30 +601,8 @@ user_scene_warped_dial_t *__arm_2d_scene_warped_dial_init(
         this.iTargetNumber = 0;
     } while(0);
 
-    s_fCosTheta = arm_cos_f32(WARPED_CIRCLE_THETA);  // 或者用 arm_cos_f32 预先计算
-    s_fSinTheta = arm_sin_f32(WARPED_CIRCLE_THETA);  // 同上
-
-
-    /* initialize zhRGB565 loader */
-    do {
-        extern const uint16_t c_zhrgbNecoGirlDance[352652];
-
-        arm_zhrgb565_loader_cfg_t tCFG = {
-            .ptScene = (arm_2d_scene_t *)ptThis,
-        
-            .phwLocalSource = c_zhrgbNecoGirlDance,
-        };
-
-        arm_zhrgb565_loader_init(&this.Animation.tLoader, &tCFG);
-    } while(0);
-
-    this.Animation.tFilm = (arm_2d_helper_film_t)
-                    impl_film(  this.Animation.tLoader.tTile, 
-                        82, 
-                        120, 
-                        1, 
-                        70, 
-                        100);
+    s_fCosTheta = arm_cos_f32(WARPED_CIRCLE_THETA); 
+    s_fSinTheta = arm_sin_f32(WARPED_CIRCLE_THETA);
 
     /* ------------   initialize members of user_scene_warped_dial_t end   ---------------*/
 

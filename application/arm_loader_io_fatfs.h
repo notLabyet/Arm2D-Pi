@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #include "ff.h"
-#include "qoi_loader.h"
+#include "__arm_2d_loader_common.h"
 
 #ifdef __cplusplus
 extern "C" {
