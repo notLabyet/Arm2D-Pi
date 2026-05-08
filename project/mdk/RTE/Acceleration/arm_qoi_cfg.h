@@ -16,7 +16,7 @@
 // <i> The size of the IO buffer
 // <i> Default: 64
 #ifndef ARM_QOI_IO_BUFF_SIZE
-#   define ARM_QOI_IO_BUFF_SIZE         64
+#   define ARM_QOI_IO_BUFF_SIZE         8192
 #endif
 
 // <q>Use Loader IO
@@ -44,5 +44,4 @@
 #endif
 
 #endif
-
 

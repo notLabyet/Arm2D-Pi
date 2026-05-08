@@ -39,6 +39,9 @@ typedef struct tufty_qoi_scene_t {
     arm_qoi_loader_t qoi;
     arm_loader_io_fatfs_t qoi_file;
     arm_2d_helper_film_t film;
+
+    int64_t fps_timestamp;
+    uint32_t fps_frames;
 } tufty_qoi_scene_t;
 
 static void tufty_qoi_scene_on_load(arm_2d_scene_t *scene)
@@ -75,6 +78,13 @@ static void tufty_qoi_scene_frame_start(arm_2d_scene_t *scene)
                 arm_2d_helper_dirty_region_item_suspend_update(
                     &this.use_as__arm_2d_scene_t.tDirtyRegionHelper.tDefaultItem,
                     false);
+
+                this.fps_frames++;
+                if (arm_2d_helper_is_time_out(2000, &this.fps_timestamp)) {
+                    printf("QOI fps: %lu\r\n",
+                           (unsigned long)((this.fps_frames + 1u) / 2u));
+                    this.fps_frames = 0;
+                }
             } else {
                 arm_2d_helper_dirty_region_item_suspend_update(
                     &this.use_as__arm_2d_scene_t.tDirtyRegionHelper.tDefaultItem,
