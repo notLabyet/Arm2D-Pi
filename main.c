@@ -190,14 +190,6 @@ int main(void)
     uint32_t wLastIMUSampleMS = 0;
 	
     system_init();
-    sleep_ms(200);
-    printf("\r\nTufty2040 SDIO/FatFs read-write test start\r\n");
-    if (tufty_sdcard_read_write_test()) {
-        printf("Tufty2040 SDIO/FatFs read-write test PASS\r\n");
-    } else {
-        printf("Tufty2040 SDIO/FatFs read-write test FAIL\r\n");
-    }
-
 #if TUFTY_SDCARD_RUN_PERF_TEST
     printf("\r\nTufty2040 SDIO/FatFs performance test start\r\n");
     (void)tufty_sdcard_default_perf_test();

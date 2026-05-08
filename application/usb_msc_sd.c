@@ -11,7 +11,18 @@
 #define USB_MSC_SD_PDRV          0u
 #define USB_MSC_SD_BLOCK_SIZE    512u
 #define USB_MSC_SCSI_CMD_SYNCHRONIZE_CACHE_10 0x35u
+
+#ifndef USB_MSC_STATS_PRINTF_ENABLED
+#define USB_MSC_STATS_PRINTF_ENABLED 0
+#endif
+
+#if USB_MSC_STATS_PRINTF_ENABLED
 #define USB_MSC_STATS_PRINT_STEP_KIB 1024u
+#define USB_MSC_STATS_PRINTF(...) printf(__VA_ARGS__)
+#else
+#define USB_MSC_STATS_PRINT_STEP_KIB UINT32_MAX
+#define USB_MSC_STATS_PRINTF(...) ((void)0)
+#endif
 
 static bool s_msc_ready;
 static uint32_t s_msc_block_count;
@@ -216,10 +227,10 @@ int32_t tud_msc_write10_cb(uint8_t lun,
         s_msc_max_write_bufsize = bufsize;
     }
     if (s_msc_write_kib >= s_msc_next_stats_kib) {
-        printf("USB MSC write: kib=%lu cb=%lu max_buf=%lu\r\n",
-               (unsigned long)s_msc_write_kib,
-               (unsigned long)s_msc_write10_count,
-               (unsigned long)s_msc_max_write_bufsize);
+        USB_MSC_STATS_PRINTF("USB MSC write: kib=%lu cb=%lu max_buf=%lu\r\n",
+                             (unsigned long)s_msc_write_kib,
+                             (unsigned long)s_msc_write10_count,
+                             (unsigned long)s_msc_max_write_bufsize);
         s_msc_next_stats_kib += USB_MSC_STATS_PRINT_STEP_KIB;
     }
 
@@ -273,11 +284,11 @@ bool tud_msc_start_stop_cb(uint8_t lun,
     if ((!start) || load_eject) {
         s_msc_sync_count++;
         (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
-        printf("USB MSC stop/eject sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
-               (unsigned long)s_msc_sync_count,
-               (unsigned long)s_msc_write10_count,
-               (unsigned long)s_msc_write_kib,
-               (unsigned long)s_msc_max_write_bufsize);
+        USB_MSC_STATS_PRINTF("USB MSC stop/eject sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
+                             (unsigned long)s_msc_sync_count,
+                             (unsigned long)s_msc_write10_count,
+                             (unsigned long)s_msc_write_kib,
+                             (unsigned long)s_msc_max_write_bufsize);
     }
 
     return true;
@@ -298,11 +309,11 @@ int32_t tud_msc_scsi_cb(uint8_t lun,
         case USB_MSC_SCSI_CMD_SYNCHRONIZE_CACHE_10:
             s_msc_sync_count++;
             (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
-            printf("USB MSC sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
-                   (unsigned long)s_msc_sync_count,
-                   (unsigned long)s_msc_write10_count,
-                   (unsigned long)s_msc_write_kib,
-                   (unsigned long)s_msc_max_write_bufsize);
+            USB_MSC_STATS_PRINTF("USB MSC sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
+                                 (unsigned long)s_msc_sync_count,
+                                 (unsigned long)s_msc_write10_count,
+                                 (unsigned long)s_msc_write_kib,
+                                 (unsigned long)s_msc_max_write_bufsize);
             return 0;
 
         default:

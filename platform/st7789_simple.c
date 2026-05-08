@@ -127,6 +127,7 @@ enum {
 static uint32_t s_sm;
 static PIO s_pio;
 static uint32_t dma_chan = 0xff;
+static uint16_t s_hwBlackLine[ST7789_WIDTH];
 
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
@@ -408,6 +409,19 @@ static void set_addr_window(int16_t x, int16_t y, int16_t w, int16_t h)
 }
 
 
+static void st7789_clear_before_backlight(void)
+{
+    set_addr_window(0, 0, ST7789_WIDTH, ST7789_HEIGHT);
+
+    write_cmd(RAMWR);
+    dc_data();
+    cs_select();
+    for (uint16_t y = 0; y < ST7789_HEIGHT; y++) {
+        st7789_pio_stream_send((const uint8_t *)s_hwBlackLine, sizeof(s_hwBlackLine));
+    }
+    cs_deselect();
+}
+
 void st7789_init(void)
 {
 	
@@ -544,6 +558,7 @@ void st7789_init(void)
 
     sleep_ms(20);
 
+    st7789_clear_before_backlight();
     bl_on();
 }
 

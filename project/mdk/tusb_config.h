@@ -22,7 +22,7 @@ extern "C" {
 #define CFG_TUD_VENDOR           0
 
 #define CFG_TUD_HID_EP_BUFSIZE   16
-#define CFG_TUD_MSC_EP_BUFSIZE   16384
+#define CFG_TUD_MSC_EP_BUFSIZE   32768
 
 #define CFG_TUSB_MEM_SECTION
 #define CFG_TUSB_MEM_ALIGN       __attribute__ ((aligned(4)))
