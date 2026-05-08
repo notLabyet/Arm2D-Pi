@@ -411,10 +411,10 @@ static uint8_t perf_pattern_byte(uint32_t offset)
     return (uint8_t)x;
 }
 
-static void perf_fill_buffer(uint8_t *buffer, uint32_t file_offset, UINT length)
+static void perf_fill_buffer(uint8_t *buffer, UINT length)
 {
     for (UINT i = 0; i < length; ++i) {
-        buffer[i] = perf_pattern_byte(file_offset + i);
+        buffer[i] = perf_pattern_byte(i);
     }
 }
 
@@ -425,13 +425,13 @@ static uint32_t perf_count_verify_errors(const uint8_t *buffer,
     uint32_t errors = 0;
 
     for (UINT i = 0; i < length; ++i) {
-        if (buffer[i] != perf_pattern_byte(file_offset + i)) {
+        if (buffer[i] != perf_pattern_byte(i)) {
             errors++;
             if (errors <= 8u) {
                 printf("SD perf verify mismatch at %lu: got 0x%02x expected 0x%02x\r\n",
                        (unsigned long)(file_offset + i),
                        buffer[i],
-                       perf_pattern_byte(file_offset + i));
+                       perf_pattern_byte(i));
             }
         }
     }
@@ -452,12 +452,14 @@ static void perf_print_result(const tufty_sdcard_perf_result_t *result)
            (unsigned long)result->short_writes,
            (unsigned long)result->write_retries);
     printf("  sync:  %lu ms\r\n", (unsigned long)result->sync_time_ms);
-    printf("  read:  %lu ms, %lu KiB/s, errors=%lu short=%lu retries=%lu verify_errors=%lu\r\n",
+    printf("  read:  %lu ms, %lu KiB/s, errors=%lu short=%lu retries=%lu\r\n",
            (unsigned long)result->read_time_ms,
            (unsigned long)result->read_kib_per_s,
            (unsigned long)result->read_errors,
            (unsigned long)result->short_reads,
-           (unsigned long)result->read_retries,
+           (unsigned long)result->read_retries);
+    printf("  verify: %lu ms, verify_errors=%lu\r\n",
+           (unsigned long)result->verify_time_ms,
            (unsigned long)result->verify_errors);
     printf("  transfer_errors=%lu last_sdio_error=%lu line=%lu\r\n",
            (unsigned long)result->transfer_errors,
@@ -479,6 +481,7 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
     uint32_t offset;
     uint32_t start_ms;
     uint32_t sync_start_ms;
+    uint32_t verify_start_ms;
 
     memset(r, 0, sizeof(*r));
     r->file_size_bytes = file_size_bytes;
@@ -507,6 +510,8 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
            (unsigned long)chunk_size_bytes,
            (unsigned)TUFTY_SDCARD_PERF_MAX_RETRIES);
 
+    perf_fill_buffer(s_perf_write_buf, (UINT)chunk_size_bytes);
+
     fr = f_open(&file, TUFTY_SDCARD_PERF_FILE, FA_CREATE_ALWAYS | FA_WRITE);
     if (FR_OK != fr) {
         r->last_error = fr;
@@ -519,8 +524,6 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
         UINT request = (UINT)((file_size_bytes - offset) < chunk_size_bytes ?
                               (file_size_bytes - offset) : chunk_size_bytes);
         bool chunk_done = false;
-
-        perf_fill_buffer(s_perf_write_buf, offset, request);
 
         for (uint32_t attempt = 0; attempt <= TUFTY_SDCARD_PERF_MAX_RETRIES; ++attempt) {
             UINT written = 0;
@@ -588,15 +591,17 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
         return false;
     }
 
-    start_ms = millis();
     for (offset = 0; offset < file_size_bytes;) {
         UINT request = (UINT)((file_size_bytes - offset) < chunk_size_bytes ?
                               (file_size_bytes - offset) : chunk_size_bytes);
         bool chunk_done = false;
 
         for (uint32_t attempt = 0; attempt <= TUFTY_SDCARD_PERF_MAX_RETRIES; ++attempt) {
+            uint32_t read_start_ms;
             UINT read_count = 0;
+            read_start_ms = millis();
             fr = f_read(&file, s_perf_read_buf, request, &read_count);
+            r->read_time_ms += millis() - read_start_ms;
 
             if ((FR_OK == fr) && (read_count == request)) {
                 chunk_done = true;
@@ -627,10 +632,11 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
             return false;
         }
 
+        verify_start_ms = millis();
         r->verify_errors += perf_count_verify_errors(s_perf_read_buf, offset, request);
+        r->verify_time_ms += millis() - verify_start_ms;
         offset += request;
     }
-    r->read_time_ms = millis() - start_ms;
     r->read_kib_per_s = perf_speed_kib_per_s(file_size_bytes, r->read_time_ms);
 
     fr = f_close(&file);

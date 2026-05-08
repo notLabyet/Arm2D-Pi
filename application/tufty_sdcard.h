@@ -28,6 +28,7 @@ typedef struct tufty_sdcard_perf_result_t {
     uint32_t chunk_size_bytes;
     uint32_t write_time_ms;
     uint32_t read_time_ms;
+    uint32_t verify_time_ms;
     uint32_t write_kib_per_s;
     uint32_t read_kib_per_s;
     uint32_t write_errors;
