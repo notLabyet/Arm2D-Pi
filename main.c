@@ -23,16 +23,11 @@
 #include "arm_2d_helper.h"
 #include "arm_2d_disp_adapters.h"
 #include "arm_2d_scenes.h"
-#include "arm_2d_demos.h"
-#include "arm_2d_render_tests.h"
 
 #ifdef RTE_Acceleration_Arm_2D_Extra_Benchmark
 #   include "arm_2d_benchmark.h"
 #endif
 
-#include "arm_2d_scene_histogram.h"
-#include "arm_2d_scene_meter.h"
-#include "arm_2d_scene_bubble_charging.h"
 
 #include "qmi8658c_task.h"
 #include "bm8563_task.h"
@@ -54,14 +49,6 @@
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
 
-
-
-
-
-void scene_warped_dial_loader(void) 
-{
-    arm_2d_scene_warped_dial_init(&DISP0_ADAPTER);
-}
 
 
 
