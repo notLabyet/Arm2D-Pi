@@ -4,11 +4,40 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "delays.h"
 #include "diskio.h"
 #include "f_util.h"
+#include "hw_config.h"
+#include "SDIO/SdioCard.h"
+
+#ifndef TUFTY_SDCARD_PERF_FILE
+#   define TUFTY_SDCARD_PERF_FILE           "sd_perf.bin"
+#endif
+#ifndef TUFTY_SDCARD_PERF_DEFAULT_SIZE
+#   define TUFTY_SDCARD_PERF_DEFAULT_SIZE   (12u * 1024u * 1024u)
+#endif
+#ifndef TUFTY_SDCARD_PERF_DEFAULT_CHUNK
+#   define TUFTY_SDCARD_PERF_DEFAULT_CHUNK  (8u * 1024u)
+#endif
+#ifndef TUFTY_SDCARD_PERF_MAX_RETRIES
+#   define TUFTY_SDCARD_PERF_MAX_RETRIES    3u
+#endif
+#define TUFTY_SDCARD_PERF_PATTERN_SEED      0x5a17c3e9u
 
 static FATFS s_sd_fs;
 static bool s_sd_mounted;
+static uint8_t s_perf_write_buf[TUFTY_SDCARD_PERF_DEFAULT_CHUNK];
+static uint8_t s_perf_read_buf[TUFTY_SDCARD_PERF_DEFAULT_CHUNK];
+
+static void perf_capture_sdio_error(tufty_sdcard_perf_result_t *result)
+{
+    sd_card_t *card = sd_get_by_num(0);
+
+    if ((NULL != card) && (SD_IF_SDIO == card->type)) {
+        result->last_sdio_error_code = sd_sdio_errorCode(card);
+        result->last_sdio_error_line = sd_sdio_errorLine(card);
+    }
+}
 
 static uint16_t rd_u16_le(const uint8_t *p)
 {
@@ -358,4 +387,277 @@ bool tufty_sdcard_read_write_test(void)
 
     printf("SD RW test OK: wrote and verified %s\r\n", test_path);
     return true;
+}
+
+static uint32_t perf_speed_kib_per_s(uint32_t bytes, uint32_t time_ms)
+{
+    if (0u == time_ms) {
+        time_ms = 1u;
+    }
+
+    return (uint32_t)(((uint64_t)bytes * 1000u) / ((uint64_t)time_ms * 1024u));
+}
+
+static uint8_t perf_pattern_byte(uint32_t offset)
+{
+    uint32_t x = offset ^ TUFTY_SDCARD_PERF_PATTERN_SEED;
+
+    x ^= x >> 16;
+    x *= 0x7feb352du;
+    x ^= x >> 15;
+    x *= 0x846ca68bu;
+    x ^= x >> 16;
+
+    return (uint8_t)x;
+}
+
+static void perf_fill_buffer(uint8_t *buffer, uint32_t file_offset, UINT length)
+{
+    for (UINT i = 0; i < length; ++i) {
+        buffer[i] = perf_pattern_byte(file_offset + i);
+    }
+}
+
+static uint32_t perf_count_verify_errors(const uint8_t *buffer,
+                                         uint32_t file_offset,
+                                         UINT length)
+{
+    uint32_t errors = 0;
+
+    for (UINT i = 0; i < length; ++i) {
+        if (buffer[i] != perf_pattern_byte(file_offset + i)) {
+            errors++;
+            if (errors <= 8u) {
+                printf("SD perf verify mismatch at %lu: got 0x%02x expected 0x%02x\r\n",
+                       (unsigned long)(file_offset + i),
+                       buffer[i],
+                       perf_pattern_byte(file_offset + i));
+            }
+        }
+    }
+
+    return errors;
+}
+
+static void perf_print_result(const tufty_sdcard_perf_result_t *result)
+{
+    printf("SD perf result: %s\r\n", result->passed ? "PASS" : "FAIL");
+    printf("  file=%lu bytes chunk=%lu bytes\r\n",
+           (unsigned long)result->file_size_bytes,
+           (unsigned long)result->chunk_size_bytes);
+    printf("  write: %lu ms, %lu KiB/s, errors=%lu short=%lu retries=%lu\r\n",
+           (unsigned long)result->write_time_ms,
+           (unsigned long)result->write_kib_per_s,
+           (unsigned long)result->write_errors,
+           (unsigned long)result->short_writes,
+           (unsigned long)result->write_retries);
+    printf("  sync:  %lu ms\r\n", (unsigned long)result->sync_time_ms);
+    printf("  read:  %lu ms, %lu KiB/s, errors=%lu short=%lu retries=%lu verify_errors=%lu\r\n",
+           (unsigned long)result->read_time_ms,
+           (unsigned long)result->read_kib_per_s,
+           (unsigned long)result->read_errors,
+           (unsigned long)result->short_reads,
+           (unsigned long)result->read_retries,
+           (unsigned long)result->verify_errors);
+    printf("  transfer_errors=%lu last_sdio_error=%lu line=%lu\r\n",
+           (unsigned long)result->transfer_errors,
+           (unsigned long)result->last_sdio_error_code,
+           (unsigned long)result->last_sdio_error_line);
+    printf("  last_error: %s (%d)\r\n",
+           FRESULT_str(result->last_error),
+           result->last_error);
+}
+
+bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
+                            uint32_t chunk_size_bytes,
+                            tufty_sdcard_perf_result_t *result)
+{
+    tufty_sdcard_perf_result_t local_result;
+    tufty_sdcard_perf_result_t *r = result ? result : &local_result;
+    FIL file;
+    FRESULT fr;
+    uint32_t offset;
+    uint32_t start_ms;
+    uint32_t sync_start_ms;
+
+    memset(r, 0, sizeof(*r));
+    r->file_size_bytes = file_size_bytes;
+    r->chunk_size_bytes = chunk_size_bytes;
+    r->last_error = FR_OK;
+
+    if ((0u == file_size_bytes) ||
+        (0u == chunk_size_bytes) ||
+        (chunk_size_bytes > sizeof(s_perf_write_buf))) {
+        r->last_error = FR_INVALID_PARAMETER;
+        perf_print_result(r);
+        return false;
+    }
+
+    fr = tufty_sdcard_mount();
+    if (FR_OK != fr) {
+        r->last_error = fr;
+        perf_print_result(r);
+        return false;
+    }
+
+    (void)f_unlink(TUFTY_SDCARD_PERF_FILE);
+
+    printf("SD perf write/read test start: file=%lu bytes chunk=%lu bytes retries=%u\r\n",
+           (unsigned long)file_size_bytes,
+           (unsigned long)chunk_size_bytes,
+           (unsigned)TUFTY_SDCARD_PERF_MAX_RETRIES);
+
+    fr = f_open(&file, TUFTY_SDCARD_PERF_FILE, FA_CREATE_ALWAYS | FA_WRITE);
+    if (FR_OK != fr) {
+        r->last_error = fr;
+        perf_print_result(r);
+        return false;
+    }
+
+    start_ms = millis();
+    for (offset = 0; offset < file_size_bytes;) {
+        UINT request = (UINT)((file_size_bytes - offset) < chunk_size_bytes ?
+                              (file_size_bytes - offset) : chunk_size_bytes);
+        bool chunk_done = false;
+
+        perf_fill_buffer(s_perf_write_buf, offset, request);
+
+        for (uint32_t attempt = 0; attempt <= TUFTY_SDCARD_PERF_MAX_RETRIES; ++attempt) {
+            UINT written = 0;
+            fr = f_write(&file, s_perf_write_buf, request, &written);
+
+            if ((FR_OK == fr) && (written == request)) {
+                chunk_done = true;
+                break;
+            }
+
+            r->transfer_errors++;
+            perf_capture_sdio_error(r);
+            if (FR_OK != fr) {
+                r->write_errors++;
+                r->last_error = fr;
+            }
+            if (written != request) {
+                r->short_writes++;
+                if (FR_OK == fr) {
+                    r->last_error = FR_DISK_ERR;
+                }
+            }
+            if (attempt < TUFTY_SDCARD_PERF_MAX_RETRIES) {
+                r->write_retries++;
+                (void)f_lseek(&file, offset);
+            }
+        }
+
+        if (!chunk_done) {
+            (void)f_close(&file);
+            perf_print_result(r);
+            return false;
+        }
+
+        offset += request;
+    }
+    r->write_time_ms = millis() - start_ms;
+    r->write_kib_per_s = perf_speed_kib_per_s(file_size_bytes, r->write_time_ms);
+
+    sync_start_ms = millis();
+    fr = f_sync(&file);
+    r->sync_time_ms = millis() - sync_start_ms;
+    if (FR_OK != fr) {
+        r->last_error = fr;
+        r->transfer_errors++;
+        perf_capture_sdio_error(r);
+        (void)f_close(&file);
+        perf_print_result(r);
+        return false;
+    }
+
+    fr = f_close(&file);
+    if (FR_OK != fr) {
+        r->last_error = fr;
+        r->transfer_errors++;
+        perf_capture_sdio_error(r);
+        perf_print_result(r);
+        return false;
+    }
+
+    fr = f_open(&file, TUFTY_SDCARD_PERF_FILE, FA_READ);
+    if (FR_OK != fr) {
+        r->last_error = fr;
+        perf_print_result(r);
+        return false;
+    }
+
+    start_ms = millis();
+    for (offset = 0; offset < file_size_bytes;) {
+        UINT request = (UINT)((file_size_bytes - offset) < chunk_size_bytes ?
+                              (file_size_bytes - offset) : chunk_size_bytes);
+        bool chunk_done = false;
+
+        for (uint32_t attempt = 0; attempt <= TUFTY_SDCARD_PERF_MAX_RETRIES; ++attempt) {
+            UINT read_count = 0;
+            fr = f_read(&file, s_perf_read_buf, request, &read_count);
+
+            if ((FR_OK == fr) && (read_count == request)) {
+                chunk_done = true;
+                break;
+            }
+
+            r->transfer_errors++;
+            perf_capture_sdio_error(r);
+            if (FR_OK != fr) {
+                r->read_errors++;
+                r->last_error = fr;
+            }
+            if (read_count != request) {
+                r->short_reads++;
+                if (FR_OK == fr) {
+                    r->last_error = FR_DISK_ERR;
+                }
+            }
+            if (attempt < TUFTY_SDCARD_PERF_MAX_RETRIES) {
+                r->read_retries++;
+                (void)f_lseek(&file, offset);
+            }
+        }
+
+        if (!chunk_done) {
+            (void)f_close(&file);
+            perf_print_result(r);
+            return false;
+        }
+
+        r->verify_errors += perf_count_verify_errors(s_perf_read_buf, offset, request);
+        offset += request;
+    }
+    r->read_time_ms = millis() - start_ms;
+    r->read_kib_per_s = perf_speed_kib_per_s(file_size_bytes, r->read_time_ms);
+
+    fr = f_close(&file);
+    if (FR_OK != fr) {
+        r->last_error = fr;
+        r->transfer_errors++;
+        perf_capture_sdio_error(r);
+    }
+
+    r->passed = (FR_OK == fr) &&
+                (0u == r->write_errors) &&
+                (0u == r->read_errors) &&
+                (0u == r->short_writes) &&
+                (0u == r->short_reads) &&
+                (0u == r->verify_errors) &&
+                (0u == r->transfer_errors);
+    if (r->passed) {
+        r->last_error = FR_OK;
+    }
+
+    perf_print_result(r);
+    return r->passed;
+}
+
+bool tufty_sdcard_default_perf_test(void)
+{
+    return tufty_sdcard_perf_test(TUFTY_SDCARD_PERF_DEFAULT_SIZE,
+                                  TUFTY_SDCARD_PERF_DEFAULT_CHUNK,
+                                  NULL);
 }
