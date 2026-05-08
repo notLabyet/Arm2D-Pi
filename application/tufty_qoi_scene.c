@@ -14,19 +14,11 @@
 #endif
 
 #ifndef TUFTY_QOI_FRAME_WIDTH
-#   define TUFTY_QOI_FRAME_WIDTH           320
+#   define TUFTY_QOI_FRAME_WIDTH           240
 #endif
 
 #ifndef TUFTY_QOI_FRAME_HEIGHT
 #   define TUFTY_QOI_FRAME_HEIGHT          240
-#endif
-
-#ifndef TUFTY_QOI_FRAME_COLUMNS
-#   define TUFTY_QOI_FRAME_COLUMNS         9
-#endif
-
-#ifndef TUFTY_QOI_FRAME_COUNT
-#   define TUFTY_QOI_FRAME_COUNT           81
 #endif
 
 #ifndef TUFTY_QOI_FRAME_PERIOD_MS
@@ -188,29 +180,36 @@ static bool tufty_qoi_scene_init_qoi(tufty_qoi_scene_t *ptThis)
         return false;
     }
 
+    int16_t image_width = this.qoi.vres.tTile.tRegion.tSize.iWidth;
+    int16_t image_height = this.qoi.vres.tTile.tRegion.tSize.iHeight;
+    uint16_t frame_columns = (uint16_t)(image_width / TUFTY_QOI_FRAME_WIDTH);
+    uint16_t frame_rows = (uint16_t)(image_height / TUFTY_QOI_FRAME_HEIGHT);
+    uint16_t frame_count = frame_columns * frame_rows;
+
     this.use_film =
-        (this.qoi.vres.tTile.tRegion.tSize.iWidth >= TUFTY_QOI_FRAME_WIDTH) &&
-        (this.qoi.vres.tTile.tRegion.tSize.iHeight >= TUFTY_QOI_FRAME_HEIGHT) &&
-        (TUFTY_QOI_FRAME_COUNT > 1);
+        (frame_columns > 0u) &&
+        (frame_rows > 0u) &&
+        (frame_count > 1u);
 
     if (this.use_film) {
         this.film = (arm_2d_helper_film_t)
             impl_film(this.qoi.vres.tTile,
                       TUFTY_QOI_FRAME_WIDTH,
                       TUFTY_QOI_FRAME_HEIGHT,
-                      TUFTY_QOI_FRAME_COLUMNS,
-                      TUFTY_QOI_FRAME_COUNT,
+                      frame_columns,
+                      frame_count,
                       TUFTY_QOI_FRAME_PERIOD_MS);
     }
 
-    printf("QOI ready: %s size=%dx%d film=%u frame=%dx%d count=%u\r\n",
+    printf("QOI ready: %s size=%dx%d film=%u frame=%dx%d cols=%u count=%u\r\n",
            TUFTY_QOI_FILE_PATH,
-           this.qoi.vres.tTile.tRegion.tSize.iWidth,
-           this.qoi.vres.tTile.tRegion.tSize.iHeight,
+           image_width,
+           image_height,
            this.use_film ? 1u : 0u,
            TUFTY_QOI_FRAME_WIDTH,
            TUFTY_QOI_FRAME_HEIGHT,
-           TUFTY_QOI_FRAME_COUNT);
+           frame_columns,
+           frame_count);
 
     return true;
 }
