@@ -25,7 +25,7 @@
 #define TUFTY_SDCARD_PERF_PATTERN_SEED      0x5a17c3e9u
 
 static FATFS s_sd_fs;
-static bool s_sd_mounted;
+static volatile bool s_sd_mounted;
 static uint8_t s_perf_write_buf[TUFTY_SDCARD_PERF_DEFAULT_CHUNK];
 static uint8_t s_perf_read_buf[TUFTY_SDCARD_PERF_DEFAULT_CHUNK];
 
