@@ -23,6 +23,45 @@
 
 #include "st7789_simple.h"
 #include "hardware/clocks.h"
+#include "hardware/pll.h"
+#include "hardware/regs/clocks.h"
+#include "hardware/regs/vreg_and_chip_reset.h"
+#include "hardware/structs/vreg_and_chip_reset.h"
+#include "hardware/sync.h"
+
+/* Boot at the SDK default 125 MHz first, then raise VREG before overclocking.
+ * This gives marginal boards a cleaner cold-start path than switching to
+ * 250 MHz inside clocks_init().
+ */
+#ifndef TUFTY2040_RUNTIME_OVERCLOCK_KHZ
+#   define TUFTY2040_RUNTIME_OVERCLOCK_KHZ      250000u
+#endif
+
+#ifndef TUFTY2040_OVERCLOCK_PLL_VCO_KHZ
+#   define TUFTY2040_OVERCLOCK_PLL_VCO_KHZ      1500000u
+#endif
+
+#ifndef TUFTY2040_OVERCLOCK_PLL_POSTDIV1
+#   define TUFTY2040_OVERCLOCK_PLL_POSTDIV1     6u
+#endif
+
+#ifndef TUFTY2040_OVERCLOCK_PLL_POSTDIV2
+#   define TUFTY2040_OVERCLOCK_PLL_POSTDIV2     1u
+#endif
+
+#ifndef TUFTY2040_OVERCLOCK_VREG
+#   define TUFTY2040_OVERCLOCK_VREG             0xEu    /* 1.25 V */
+#endif
+
+#ifndef TUFTY2040_OVERCLOCK_VREG_SETTLE_MS
+#   define TUFTY2040_OVERCLOCK_VREG_SETTLE_MS   10u
+#endif
+
+#if TUFTY2040_RUNTIME_OVERCLOCK_KHZ
+#   if TUFTY2040_RUNTIME_OVERCLOCK_KHZ != (TUFTY2040_OVERCLOCK_PLL_VCO_KHZ / (TUFTY2040_OVERCLOCK_PLL_POSTDIV1 * TUFTY2040_OVERCLOCK_PLL_POSTDIV2))
+#       error TUFTY2040_RUNTIME_OVERCLOCK_KHZ does not match the PLL VCO/post-divider settings.
+#   endif
+#endif
 
 /*============================ MACROS ========================================*/
 /*============================ MACROFIED FUNCTIONS ===========================*/
@@ -31,6 +70,49 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
+
+static void tufty2040_set_vreg_voltage(uint32_t vsel)
+{
+    hw_write_masked(&vreg_and_chip_reset_hw->vreg,
+                    vsel << VREG_AND_CHIP_RESET_VREG_VSEL_LSB,
+                    VREG_AND_CHIP_RESET_VREG_VSEL_BITS);
+}
+
+static void tufty2040_set_sys_clock_overclock(void)
+{
+    const uint32_t wUsbClockHz = USB_CLK_KHZ * KHZ;
+    const uint32_t wSysClockHz = TUFTY2040_RUNTIME_OVERCLOCK_KHZ * KHZ;
+
+    clock_configure(clk_sys,
+                    CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
+                    CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_USB,
+                    wUsbClockHz,
+                    wUsbClockHz);
+
+    pll_init(pll_sys,
+             PLL_COMMON_REFDIV,
+             TUFTY2040_OVERCLOCK_PLL_VCO_KHZ * KHZ,
+             TUFTY2040_OVERCLOCK_PLL_POSTDIV1,
+             TUFTY2040_OVERCLOCK_PLL_POSTDIV2);
+
+    clock_configure(clk_ref,
+                    CLOCKS_CLK_REF_CTRL_SRC_VALUE_XOSC_CLKSRC,
+                    0,
+                    XOSC_KHZ * KHZ,
+                    XOSC_KHZ * KHZ);
+
+    clock_configure(clk_sys,
+                    CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX,
+                    CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS,
+                    wSysClockHz,
+                    wSysClockHz);
+
+    clock_configure(clk_peri,
+                    0,
+                    CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+                    wSysClockHz,
+                    wSysClockHz);
+}
 
 void SysTick_Handler(void)
 {
@@ -68,6 +150,13 @@ void platform_init(void)
 {
     clocks_init();
     extern uint32_t SystemCoreClock;
+
+#if TUFTY2040_RUNTIME_OVERCLOCK_KHZ
+    tufty2040_set_vreg_voltage(TUFTY2040_OVERCLOCK_VREG);
+    busy_wait_ms(TUFTY2040_OVERCLOCK_VREG_SETTLE_MS);
+    tufty2040_set_sys_clock_overclock();
+#endif
+
     SystemCoreClock = clock_get_hz(clk_sys);
     
 	
