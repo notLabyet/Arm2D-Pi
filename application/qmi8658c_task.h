@@ -3,22 +3,14 @@
 
 #include "drv_QMI8658.h"
 
-
-
-
-
-
-
-
-
-
+/**
+ * Initialize the board I2C pins and start the QMI8658 IMU.
+ *
+ * The lower-level chip driver uses I2C_PORT, Device_Address, and the
+ * iic0_read_bytes()/iic0_write_bytes() helpers from drv_QMI8658.c.
+ *
+ * @return 1 on success, 0 on failure.
+ */
 extern uint8_t qmi8658c_init();
-
-
-
-
-
-
-
 
 #endif

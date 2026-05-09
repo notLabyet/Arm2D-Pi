@@ -7,6 +7,7 @@ extern char iic0_read_bytes(unsigned char addr,unsigned char reg, unsigned char 
 bm8563_t tbm8563;
 
 
+/* Adapt the generic BM8563 HAL callback to the shared board I2C writer. */
 int32_t bm8563_write_bytes(void *handle, uint8_t address, uint8_t reg, uint8_t *buffer, uint16_t size){
 
 	int32_t status;
@@ -18,6 +19,7 @@ int32_t bm8563_write_bytes(void *handle, uint8_t address, uint8_t reg, uint8_t *
 	return status;
 }
 
+/* Adapt the generic BM8563 HAL callback to the shared board I2C reader. */
 int32_t bm8563_read_bytes(void *handle, uint8_t address, uint8_t reg,uint8_t *buffer, uint16_t size){
 	int32_t status;
 	if(iic0_read_bytes(address,reg, buffer,size)){
@@ -31,6 +33,11 @@ int32_t bm8563_read_bytes(void *handle, uint8_t address, uint8_t reg,uint8_t *bu
 char bm8563_hander_init()
 {
 	struct tm time ;
+
+	/*
+	 * Default startup time used during board bring-up. Remove bm8563_write()
+	 * below if you want to preserve the RTC time across resets.
+	 */
 	time.tm_year = 26;
 	time.tm_mon = 3;
 	time.tm_mday = 12;

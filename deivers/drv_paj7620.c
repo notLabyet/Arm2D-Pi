@@ -7,29 +7,40 @@
  *
  * The MIT License (MIT)
  */
+
+/**
+ * @file drv_paj7620.c
+ * @brief I2C register streaming, bank switching, and gesture-engine bring-up for PAJ7620U2.
+ *
+ * @see drv_paj7620.h for register names. I2C helpers @c iic0_read_bytes / @c iic0_write_bytes
+ * return 1 on success; this file maps that to @c 0 == success for @c paj7620* APIs.
+ */
+
 #include <stdint.h>
 #include <string.h>
 #include "pico/stdlib.h"
 #include "drv_paj7620.h"
 
-/* 请根据你的平台替换以下头文件和函数定义 */
-// #include "your_i2c_header.h"  // 包含你的I2C驱动头文件
-// #include "your_delay_header.h" // 包含你的延时函数头文件
-#define I2C_PORT 0 // 你的I2C端口号，根据实际修改
+/*
+ * Board I2C access is provided by the shared sensor-bus helpers below. The
+ * helpers return 1 on success and 0 on failure; this driver converts that to
+ * the PAJ7620 convention where 0 means success.
+ */
 
-/* I2C读写函数 来自iic.txt */
+/* I2C port index is defined by the platform I2C wrapper (see board BSP). */
+#define I2C_PORT 0
+
 extern char iic0_read_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len);
 extern char iic0_write_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len);
 
-/* 微秒延时函数 请替换为你的平台实现 例如rtthread的rt_hw_us_delay */
+/** Microsecond delay used after reset and between bank toggles. */
 static void delay_us(uint32_t us)
 {
-    // 示例：空循环占位，实际请替换为平台原生延时函数
     sleep_us(us);
 }
 
-/* Registers' initialization data */
-static const uint8_t initRegisterArray[][2] = {	// Initial Gesture
+/** Register/value pairs loaded after chip ID check (Seeed “Near_normal_mode” gesture profile). */
+static const uint8_t initRegisterArray[][2] = {	/* Initial gesture engine tuning */
     {0xEF,0x00},
 	{0x32,0x29},
 	{0x33,0x01},
@@ -251,40 +262,27 @@ static const uint8_t initRegisterArray[][2] = {	// Initial Gesture
 	{0x7E,0x01},
 };
 
-/**************************************************************** 
- * Function Name: paj7620WriteReg
- * Description:  PAJ7620 Write reg cmd
- * Parameters: addr:reg address; cmd:function data
- * Return: error code; success: return 0
-****************************************************************/ 
+/**
+ * @brief Write one 8-bit register on the PAJ7620.
+ * @return 0 on success, non-zero if the I2C helper reported failure.
+ */
 uint8_t paj7620WriteReg(uint8_t addr, uint8_t cmd)
 {
 	char ret = iic0_write_bytes(PAJ7620_ID, addr, &cmd, 1);
-	// iic0_write_bytes返回1成功 0失败，转换为标准错误码0成功 非0失败
 	return (ret == 1) ? 0 : 1;
 }
 
-/**************************************************************** 
- * Function Name: paj7620ReadReg
- * Description:  PAJ7620 read reg data
- * Parameters: addr:reg address;
- *			   qty:number of data to read, addr continuously increase;
- *			   data[]:storage memory start address
- * Return: error code; success: return 0
-****************************************************************/ 
+/**
+ * @brief Burst-read consecutive registers starting at @p addr.
+ * @param qty Number of bytes to read into @p data.
+ */
 uint8_t paj7620ReadReg(uint8_t addr, uint8_t qty, uint8_t data[])
 {
 	char ret = iic0_read_bytes(PAJ7620_ID, addr, data, qty);
-	// iic0_read_bytes返回1成功 0失败，转换为标准错误码0成功 非0失败
 	return (ret == 1) ? 0 : 1;
 }
 
-/**************************************************************** 
- * Function Name: paj7620SelectBank
- * Description:  PAJ7620 select register bank
- * Parameters: BANK0, BANK1
- * Return: none
-****************************************************************/ 
+/** Select register bank 0 or 1 via @ref PAJ7620_REGITER_BANK_SEL. */
 void paj7620SelectBank(bank_e bank)
 {
     switch(bank){
@@ -299,22 +297,19 @@ void paj7620SelectBank(bank_e bank)
 	}
 }
 
-/**************************************************************** 
- * Function Name: paj7620Init
- * Description:  PAJ7620 REG INIT
- * Parameters: none
- * Return: error code; success: return 0
-****************************************************************/ 
+/**
+ * @brief Full chip bring-up: wake, verify chip ID, stream init table, return to bank 0.
+ * @return 0 on success; non-zero I2C error from @ref paj7620ReadReg; 0xFF if ID mismatch.
+ */
 uint8_t paj7620Init(void) 
 {
-	//Near_normal_mode_V5_6.15mm_121017 for 940nm
+	/* Near_normal_mode_V5_6.15mm_121017 profile (940 nm IR). */
 	int i = 0;
 	uint8_t error;
 	uint8_t data0 = 0, data1 = 0;
-	//wakeup the sensor
-	delay_us(700);	//Wait 700us for PAJ7620U2 to stabilize	
+	delay_us(700);	/* Allow PAJ7620U2 analog front-end to settle after power-up */
 
-	// I2C外设已经提前初始化 不需要再调用初始化函数
+	/* Assumes the I2C controller was initialized elsewhere in the BSP. */
 
 	paj7620SelectBank(BANK0);
 	sleep_ms(1);
@@ -333,7 +328,7 @@ uint8_t paj7620Init(void)
 
 	if ( (data0 != 0x20 ) || (data1 != 0x76) )
 	{
-		return 0xff; // 设备ID不匹配
+		return 0xff; /* Chip ID bytes do not match expected PAJ7620U2 values */
 	}
 	
 	for (i = 0; i < INIT_REG_ARRAY_SIZE; i++) 
@@ -341,17 +336,20 @@ uint8_t paj7620Init(void)
 		paj7620WriteReg(initRegisterArray[i][0], initRegisterArray[i][1]);
 	}
 	
-	paj7620SelectBank(BANK0);  //gesture flage reg in Bank0
-	
+	paj7620SelectBank(BANK0);  /* Gesture flag registers live in bank 0 */
+
 	return 0;
 }
 
-
+/**
+ * @brief Read gesture flag register 0 once after a delay (simple bring-up check).
+ * @note Branches after @c return gesture are unreachable; kept for vendor compatibility.
+ */
 char paj7620_test(void)
 {
     uint8_t gesture = 0;
 	paj7620ReadReg(PAJ7620_ADDR_GES_PS_DET_FLAG_0, 1, &gesture);
-	sleep_ms(400); // 100ms延时
+	sleep_ms(400);
 	return gesture;
 	if(gesture & GES_RIGHT_FLAG) ;
 	else if(gesture & GES_LEFT_FLAG) ;

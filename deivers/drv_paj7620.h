@@ -16,9 +16,19 @@
 extern "C" {
 #endif
 
+/**
+ * @file drv_paj7620.h
+ * @brief Register map, bank selection, and gesture flag constants for the PAJ7620U2.
+ *
+ * The PAJ7620 exposes the same 8-bit register addresses in two banks; write
+ * @ref PAJ7620_REGITER_BANK_SEL before accessing bank-specific configuration.
+ * Gesture results appear in @ref PAJ7620_ADDR_GES_PS_DET_FLAG_0 / _1 after initialization
+ * with the init table shipped in @c drv_paj7620.c.
+ */
+
 #define BIT(x)  (1 << (x))
 
-// REGISTER DESCRIPTION
+/** Build a field value @a val shifted to @a maskbit (legacy macro from vendor headers). */
 #define PAJ7620_VAL(val, maskbit)        ((val) << (maskbit))
 #define PAJ7620_ADDR_BASE                0x00
 
@@ -64,13 +74,16 @@ extern "C" {
 #define PAJ7620_ENABLE        PAJ7620_VAL(1,0)
 #define PAJ7620_DISABLE        PAJ7620_VAL(0,0)
 
+/** Register bank selector values for @ref paj7620SelectBank(). */
 typedef enum {
     BANK0 = 0,
-    BANK1,        
+    BANK1,
 } bank_e;
+
+/** Bit masks for logical gesture directions (used with flag registers and application code). */
 typedef enum {
     GES_RIGHT = 1,
-    GES_LEFT = 1<<1,     
+    GES_LEFT = 1<<1,
 	GES_UP= 1<<2,
 	GES_DOWN= 1<<3,
 	GES_FORWARD= 1<<4,
@@ -91,31 +104,31 @@ typedef enum {
 #define INIT_REG_ARRAY_SIZE (sizeof(initRegisterArray)/sizeof(initRegisterArray[0]))
 
 /**
- * @brief Initialize PAJ7620 sensor
- * @return 0: success, other: error code
+ * @brief Run chip wake-up, ID check, and download the gesture tuning table.
+ * @return 0 on success; non-zero I2C error from @ref paj7620ReadReg; 0xFF if chip ID mismatches.
  */
 uint8_t paj7620Init(void);
 
 /**
- * @brief Write register to PAJ7620
- * @param addr: register address
- * @param cmd: data to write
- * @return 0: success, other: error code
+ * @brief Write a single 8-bit register.
+ * @param addr Register index (bank-dependent).
+ * @param cmd  Value to write.
+ * @return 0 on success, non-zero on I2C failure.
  */
 uint8_t paj7620WriteReg(uint8_t addr, uint8_t cmd);
 
 /**
- * @brief Read registers from PAJ7620
- * @param addr: start register address
- * @param qty: number of registers to read
- * @param data: buffer to store read data
- * @return 0: success, other: error code
+ * @brief Read a contiguous block of registers.
+ * @param addr Start index.
+ * @param qty  Number of bytes to read into @p data.
+ * @param data Destination buffer (caller-owned, size ≥ @p qty).
+ * @return 0 on success, non-zero on I2C failure.
  */
 uint8_t paj7620ReadReg(uint8_t addr, uint8_t qty, uint8_t data[]);
 
 /**
- * @brief Select register bank
- * @param bank: BANK0 or BANK1
+ * @brief Switch the internal address map between bank 0 and bank 1.
+ * @param bank Target bank enumerator.
  */
 void paj7620SelectBank(bank_e bank);
 

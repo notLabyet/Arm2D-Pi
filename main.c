@@ -40,28 +40,28 @@
 #include "tufty_sdcard.h"
 #include "tufty_qoi_scene.h"
 #include "tufty_lmsk_scene.h"
-#include "ir_test.h"
-#include "light_test.h"
-#include "buzzer_test.h"
+#include "ir_task.h"
+#include "light_task.h"
+#include "buzzer_task.h"
 /*============================ MACROS ========================================*/
 #ifndef TUFTY_SDCARD_RUN_PERF_TEST
 #   define TUFTY_SDCARD_RUN_PERF_TEST 0
 #endif
 
-#ifndef TUFTY_IR_TEST_ENABLE
-#   define TUFTY_IR_TEST_ENABLE 0
+#ifndef TUFTY_IR_TASK_ENABLE
+#   define TUFTY_IR_TASK_ENABLE 0
 #endif
 
-#ifndef TUFTY_LIGHT_TEST_ENABLE
-#   define TUFTY_LIGHT_TEST_ENABLE 1
+#ifndef TUFTY_LIGHT_TASK_ENABLE
+#   define TUFTY_LIGHT_TASK_ENABLE 1
 #endif
 
 #ifndef TUFTY_IMU_SAMPLE_ENABLE
 #   define TUFTY_IMU_SAMPLE_ENABLE 0
 #endif
 
-#ifndef TUFTY_BUZZER_TEST_ENABLE
-#   define TUFTY_BUZZER_TEST_ENABLE 1
+#ifndef TUFTY_BUZZER_TASK_ENABLE
+#   define TUFTY_BUZZER_TASK_ENABLE 1
 #endif
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
@@ -102,7 +102,7 @@ static demo_scene_t const c_SceneLoaders[] = {
 #else
     {
         .fnLoader = 
-        tufty_qoi_scene_loader,
+        //tufty_qoi_scene_loader,
         //tufty_lmsk_scene_loader,
         //scene_large_lmsk_loader,
         //scene_qoi_animation_loader,
@@ -120,7 +120,7 @@ static demo_scene_t const c_SceneLoaders[] = {
         //scene_blink_loader,
         //scene_histogram_loader,
         //scene_flight_attitude_instrument_loader,
-        //scene_radars_loader,
+        scene_radars_loader,
         //scene_music_player_loader,
         //scene_meter_loader,
         //scene_rickrolling_loader,
@@ -241,14 +241,14 @@ int main(void)
 	sleep_ms(10);
 
 	bm8563_hander_init();
-#if TUFTY_IR_TEST_ENABLE
-    ir_test_init(IR_TEST_CARRIER_HZ, IR_TEST_DUTY_PERMILLE);
+#if TUFTY_IR_TASK_ENABLE
+    ir_task_init();
 #endif
-#if TUFTY_LIGHT_TEST_ENABLE
-    light_test_init();
+#if TUFTY_LIGHT_TASK_ENABLE
+    light_task_init();
 #endif
-#if TUFTY_BUZZER_TEST_ENABLE
-    buzzer_test_init();
+#if TUFTY_BUZZER_TASK_ENABLE
+    buzzer_task_init();
 #endif
 
     while (true) {
@@ -262,14 +262,14 @@ int main(void)
 //		bm8563_read(&tbm8563, &bm_time);
 		power_task();
 //        usb_mouse_task();
-#if TUFTY_IR_TEST_ENABLE
-        ir_test_task();
+#if TUFTY_IR_TASK_ENABLE
+        ir_task(IR_TASK_SEND_INTERVAL_MS);
 #endif
-#if TUFTY_LIGHT_TEST_ENABLE
-        light_test_task();
+#if TUFTY_LIGHT_TASK_ENABLE
+        light_task(LIGHT_TASK_INTERVAL_MS);
 #endif
-#if TUFTY_BUZZER_TEST_ENABLE
-        buzzer_test_task();
+#if TUFTY_BUZZER_TASK_ENABLE
+        buzzer_task(BUZZER_TASK_REPEAT_PAUSE_MS);
 #endif
         disp_adapter0_task(60);
 

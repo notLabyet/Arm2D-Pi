@@ -36,18 +36,26 @@ SPDX-License-Identifier: MIT
 
 #include "bm8563.h"
 
+/** Pack two decimal digits (0–99) into one BCD byte for the RTC registers. */
 static inline uint8_t
 decimal2bcd (uint8_t decimal)
 {
     return (((decimal / 10) << 4) | (decimal % 10));
 }
 
+/** Unpack one BCD byte from the chip into a binary 0–99 value. */
 static inline uint8_t
 bcd2decimal(uint8_t bcd)
 {
     return (((bcd >> 4) * 10) + (bcd & 0x0f));
 }
 
+/**
+ * @brief Initialize the BM8563 after power-on.
+ *
+ * Writes 0x00 to @ref BM8563_CONTROL_STATUS1 and @ref BM8563_CONTROL_STATUS2 to release STOP
+ * and clear interrupt enables/flags according to the reference driver behavior.
+ */
 bm8563_err_t
 bm8563_init(const bm8563_t *bm)
 {
@@ -61,6 +69,12 @@ bm8563_init(const bm8563_t *bm)
     return bm->write(bm->handle, BM8563_ADDRESS, BM8563_CONTROL_STATUS2, &clear, 1);
 }
 
+/**
+ * @brief Read current time and date from the RTC.
+ *
+ * Converts BCD fields to @c struct @c tm, sets @c tm_yday via @c mktime(), and returns
+ * @ref BM8563_ERR_LOW_VOLTAGE if the VL bit in seconds indicates backup supply failure.
+ */
 bm8563_err_t
 bm8563_read(const bm8563_t *bm, struct tm *time)
 {
@@ -77,7 +91,7 @@ bm8563_read(const bm8563_t *bm, struct tm *time)
         return status;
     }
 
-    /* 0..59 */
+    /* Seconds: mask CH/VL; bit7 is voltage-low when set. */
     bcd = data[0] & 0b01111111;
     time->tm_sec = bcd2decimal(bcd);
 
@@ -113,7 +127,7 @@ bm8563_read(const bm8563_t *bm, struct tm *time)
     /* Calculate tm_yday. */
     mktime(time);
 
-    /* low voltage warning */
+    /* VL in seconds register: backup cell may be depleted. */
     if (data[0] & 0b10000000) {
         return BM8563_ERR_LOW_VOLTAGE;
     }
@@ -121,6 +135,11 @@ bm8563_read(const bm8563_t *bm, struct tm *time)
     return BM8563_OK;
 }
 
+/**
+ * @brief Program the RTC calendar and wall-clock time.
+ *
+ * Applies century bit for @c tm_year >= 100 (year 2000+), stores two-digit year in BCD.
+ */
 bm8563_err_t
 bm8563_write(const bm8563_t *bm, const struct tm *time)
 {
@@ -163,6 +182,13 @@ bm8563_write(const bm8563_t *bm, const struct tm *time)
     return bm->write(bm->handle, BM8563_ADDRESS, BM8563_SECONDS, data, BM8563_TIME_SIZE);
 }
 
+/**
+ * @brief Extended control: alarm programming, alarm readback, or single-register peek/poke.
+ *
+ * @param command One of the @c BM8563_* IOCTL constants encoding register + direction.
+ * @param buffer  For alarms: @c struct @c tm with @ref BM8563_ALARM_NONE to disable fields;
+ *                for raw CSR/timer ops: pointer to one @c uint8_t.
+ */
 bm8563_err_t
 bm8563_ioctl(const bm8563_t *bm, int16_t command, void *buffer)
 {
@@ -281,6 +307,7 @@ bm8563_ioctl(const bm8563_t *bm, int16_t command, void *buffer)
     return BM8563_ERROR_NOTTY;
 }
 
+/** @brief No-op close for HAL symmetry; always returns @ref BM8563_OK. */
 bm8563_err_t
 bm8563_close(const bm8563_t *bm)
 {

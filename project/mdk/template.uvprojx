@@ -481,34 +481,34 @@
               <FilePath>..\..\application\tufty_lmsk_scene.h</FilePath>
             </File>
             <File>
-              <FileName>ir_test.c</FileName>
+              <FileName>ir_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\application\ir_test.c</FilePath>
+              <FilePath>..\..\application\ir_task.c</FilePath>
             </File>
             <File>
-              <FileName>ir_test.h</FileName>
+              <FileName>ir_task.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\application\ir_test.h</FilePath>
+              <FilePath>..\..\application\ir_task.h</FilePath>
             </File>
             <File>
-              <FileName>light_test.c</FileName>
+              <FileName>light_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\application\light_test.c</FilePath>
+              <FilePath>..\..\application\light_task.c</FilePath>
             </File>
             <File>
-              <FileName>light_test.h</FileName>
+              <FileName>light_task.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\application\light_test.h</FilePath>
+              <FilePath>..\..\application\light_task.h</FilePath>
             </File>
             <File>
-              <FileName>buzzer_test.c</FileName>
+              <FileName>buzzer_task.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\application\buzzer_test.c</FilePath>
+              <FilePath>..\..\application\buzzer_task.c</FilePath>
             </File>
             <File>
-              <FileName>buzzer_test.h</FileName>
+              <FileName>buzzer_task.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\application\buzzer_test.h</FilePath>
+              <FilePath>..\..\application\buzzer_task.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -559,6 +559,36 @@
               <FileName>bm8563.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\deivers\bm8563.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_ir.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\deivers\drv_ir.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_ir.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\deivers\drv_ir.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_light.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\deivers\drv_light.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_light.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\deivers\drv_light.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\deivers\drv_buzzer.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_buzzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\..\deivers\drv_buzzer.h</FilePath>
             </File>
           </Files>
         </Group>

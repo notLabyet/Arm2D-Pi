@@ -28,6 +28,11 @@ const arm_loader_io_t ARM_LOADER_IO_FATFS = {
     .fnRead = fatfs_io_read,
 };
 
+/*
+ * This module adapts FatFs to the Arm-2D loader callback interface. It keeps a
+ * logical file position because Arm-2D asks the I/O backend to seek/read instead
+ * of exposing the FatFs FIL object directly.
+ */
 arm_2d_err_t arm_loader_io_fatfs_init(arm_loader_io_fatfs_t *io,
                                       const char *path)
 {
@@ -163,6 +168,7 @@ static size_t fatfs_io_read(uintptr_t target, void *loader, uint8_t *buffer, siz
     }
 
 #if !ARM_LOADER_IO_FATFS_USE_CACHE
+    /* Direct path: every loader read becomes f_lseek() + f_read(). */
     while ((total_read < size) && (io->position < io->file_size)) {
         UINT request;
         UINT bytes_read = 0;
@@ -190,6 +196,7 @@ static size_t fatfs_io_read(uintptr_t target, void *loader, uint8_t *buffer, siz
         io->position += (FSIZE_t)bytes_read;
     }
 #else
+    /* Cached path: useful for small repeated reads while decoding assets. */
     while ((total_read < size) && (io->position < io->file_size)) {
         arm_loader_io_fatfs_cache_t *cache;
         FSIZE_t cache_offset;
@@ -273,6 +280,7 @@ static arm_loader_io_fatfs_cache_t *fatfs_io_select_victim(arm_loader_io_fatfs_t
             return cache;
         }
 
+        /* Least-recently-used replacement among the fixed cache ways. */
         if (cache->age < victim->age) {
             victim = cache;
         }
