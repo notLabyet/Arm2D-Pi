@@ -82,14 +82,14 @@ directly from another task file.
 
 ## SD Card and Arm-2D Loading
 
-### `tufty_sdcard.c/.h`
+### `rp2040_sdcard.c/.h`
 
 Small FatFs helper layer used by tests and content loading:
 
-- `tufty_sdcard_mount()`
-- `tufty_sdcard_read_file()`
-- `tufty_sdcard_write_file()`
-- `tufty_sdcard_perf_test()`
+- `rp2040_sdcard_mount()`
+- `rp2040_sdcard_read_file()`
+- `rp2040_sdcard_write_file()`
+- `rp2040_sdcard_perf_test()`
 
 This layer owns the FatFs mount state and prints extra diagnostics if mounting
 fails.
@@ -114,5 +114,5 @@ Set cache size or ways to zero to force direct `f_lseek()` + `f_read()` reads.
 - `bm8563_task.c/.h`: board task wrapper for the BM8563 RTC.
 - `usb_mouse.c/.h`: USB HID mouse behavior.
 - `usb_msc_sd.c/.h`: USB mass-storage bridge for the SD card.
-- `tufty_qoi_scene.c/.h`, `tufty_lmsk_scene.c/.h`: Arm-2D scene loading from
+- `rp2040_qoi_scene.c/.h`, `rp2040_lmsk_scene.c/.h`: Arm-2D scene loading from
   SD card resources.

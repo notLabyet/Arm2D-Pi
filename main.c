@@ -37,31 +37,31 @@
 #include "usb_mouse.h"
 #include "usb_msc_sd.h"
 #include "hardware/clocks.h"
-#include "tufty_sdcard.h"
-#include "tufty_qoi_scene.h"
-#include "tufty_lmsk_scene.h"
+#include "rp2040_sdcard.h"
+#include "rp2040_qoi_scene.h"
+#include "rp2040_lmsk_scene.h"
 #include "ir_task.h"
 #include "light_task.h"
 #include "buzzer_task.h"
 /*============================ MACROS ========================================*/
-#ifndef TUFTY_SDCARD_RUN_PERF_TEST
-#   define TUFTY_SDCARD_RUN_PERF_TEST 0
+#ifndef RP2040_SDCARD_RUN_PERF_TEST
+#   define RP2040_SDCARD_RUN_PERF_TEST 0
 #endif
 
-#ifndef TUFTY_IR_TASK_ENABLE
-#   define TUFTY_IR_TASK_ENABLE 0
+#ifndef RP2040_IR_TASK_ENABLE
+#   define RP2040_IR_TASK_ENABLE 0
 #endif
 
-#ifndef TUFTY_LIGHT_TASK_ENABLE
-#   define TUFTY_LIGHT_TASK_ENABLE 1
+#ifndef RP2040_LIGHT_TASK_ENABLE
+#   define RP2040_LIGHT_TASK_ENABLE 1
 #endif
 
-#ifndef TUFTY_IMU_SAMPLE_ENABLE
-#   define TUFTY_IMU_SAMPLE_ENABLE 0
+#ifndef RP2040_IMU_SAMPLE_ENABLE
+#   define RP2040_IMU_SAMPLE_ENABLE 0
 #endif
 
-#ifndef TUFTY_BUZZER_TASK_ENABLE
-#   define TUFTY_BUZZER_TASK_ENABLE 1
+#ifndef RP2040_BUZZER_TASK_ENABLE
+#   define RP2040_BUZZER_TASK_ENABLE 1
 #endif
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
@@ -102,8 +102,8 @@ static demo_scene_t const c_SceneLoaders[] = {
 #else
     {
         .fnLoader = 
-        //tufty_qoi_scene_loader,
-        //tufty_lmsk_scene_loader,
+        //rp2040_qoi_scene_loader,
+        //rp2040_lmsk_scene_loader,
         //scene_large_lmsk_loader,
         //scene_qoi_animation_loader,
         //scene_lmsk_loader,
@@ -206,9 +206,9 @@ int main(void)
     uint32_t wLastIMUSampleMS = 0;
 	
     system_init();
-#if TUFTY_SDCARD_RUN_PERF_TEST
-    printf("\r\nTufty2040 SDIO/FatFs performance test start\r\n");
-    (void)tufty_sdcard_default_perf_test();
+#if RP2040_SDCARD_RUN_PERF_TEST
+    printf("\r\nRP2040 SDIO/FatFs performance test start\r\n");
+    (void)rp2040_sdcard_default_perf_test();
 #endif
 
     (void)usb_msc_sd_init();
@@ -217,7 +217,7 @@ int main(void)
     usb_mouse_startup_poll(500u);
 
     __cycleof__("printf") {
-        printf("Hello Tufty2040!\r\n");
+        printf("Hello RP2040!\r\n");
 		printf("clk_sys = %d\r\n",clock_get_hz(clk_sys));		
 		printf("clk_usb = %d\r\n",clock_get_hz(clk_usb));
     }
@@ -241,20 +241,20 @@ int main(void)
 	sleep_ms(10);
 
 	bm8563_hander_init();
-#if TUFTY_IR_TASK_ENABLE
+#if RP2040_IR_TASK_ENABLE
     ir_task_init();
 #endif
-#if TUFTY_LIGHT_TASK_ENABLE
+#if RP2040_LIGHT_TASK_ENABLE
     light_task_init();
 #endif
-#if TUFTY_BUZZER_TASK_ENABLE
+#if RP2040_BUZZER_TASK_ENABLE
     buzzer_task_init();
 #endif
 
     while (true) {
         uint32_t const wNow = get_system_ms();
 
-		if(TUFTY_IMU_SAMPLE_ENABLE && qmi8658_init_ret && ((uint32_t)(wNow - wLastIMUSampleMS) >= 10)){
+		if(RP2040_IMU_SAMPLE_ENABLE && qmi8658_init_ret && ((uint32_t)(wNow - wLastIMUSampleMS) >= 10)){
             wLastIMUSampleMS = wNow;
 			QMI8658A_ReadData(DATA_GY_ACC);
 //            usb_mouse_update_imu_raw(DATA_GY_ACC);
@@ -262,13 +262,13 @@ int main(void)
 //		bm8563_read(&tbm8563, &bm_time);
 		power_task();
 //        usb_mouse_task();
-#if TUFTY_IR_TASK_ENABLE
+#if RP2040_IR_TASK_ENABLE
         ir_task(IR_TASK_SEND_INTERVAL_MS);
 #endif
-#if TUFTY_LIGHT_TASK_ENABLE
+#if RP2040_LIGHT_TASK_ENABLE
         light_task(LIGHT_TASK_INTERVAL_MS);
 #endif
-#if TUFTY_BUZZER_TASK_ENABLE
+#if RP2040_BUZZER_TASK_ENABLE
         buzzer_task(BUZZER_TASK_REPEAT_PAUSE_MS);
 #endif
         disp_adapter0_task(60);
@@ -311,7 +311,7 @@ fsm_rt_t power_task(void)
 
             /*
              * 上电后立即拉高保持电源，
-             * 防止松开按键后系统掉�?             */
+             * 防止松开按键后系统掉�?             */
             gpio_put(POWER_KEEP_PIN, 1);
 
             gpio_init(POWER_UP_CHECK_PIN);
@@ -327,7 +327,7 @@ fsm_rt_t power_task(void)
         case POWER_SOURCE_CHECK:
         {
             /*
-             * 按键低电平：说明是手动按键触发上�?             * 按键高电平：说明不是按键上电，关闭保持电源，等待按键
+             * 按键低电平：说明是手动按键触发上�?             * 按键高电平：说明不是按键上电，关闭保持电源，等待按键
              */
             if (gpio_get(POWER_UP_CHECK_PIN) == 0) {
                 delay = now;
@@ -376,7 +376,7 @@ fsm_rt_t power_task(void)
         case PUSH_CHECK:
         {
             /*
-             * 系统已上电状态下，检测再次长按关�?             */
+             * 系统已上电状态下，检测再次长按关�?             */
             if (gpio_get(POWER_UP_CHECK_PIN) == 0) {
                 if ((uint32_t)(now - delay) >= 1000) {
                     chState = POWER_OFF;
@@ -390,7 +390,7 @@ fsm_rt_t power_task(void)
         case POWER_OFF:
         {
             /*
-             * 拉低保持电源，系统掉�?             */
+             * 拉低保持电源，系统掉�?             */
             gpio_put(POWER_KEEP_PIN, 0);
             break;
         }

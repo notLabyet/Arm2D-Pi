@@ -1,4 +1,4 @@
-#include "tufty_qoi_scene.h"
+#include "rp2040_qoi_scene.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -9,26 +9,26 @@
 #include "arm_loader_io_fatfs.h"
 #include "qoi_loader.h"
 
-#ifndef TUFTY_QOI_FILE_PATH
-#   define TUFTY_QOI_FILE_PATH             "gif.qoi"
+#ifndef RP2040_QOI_FILE_PATH
+#   define RP2040_QOI_FILE_PATH             "gif.qoi"
 #endif
 
-#ifndef TUFTY_QOI_FRAME_WIDTH
-#   define TUFTY_QOI_FRAME_WIDTH           240
+#ifndef RP2040_QOI_FRAME_WIDTH
+#   define RP2040_QOI_FRAME_WIDTH           240
 #endif
 
-#ifndef TUFTY_QOI_FRAME_HEIGHT
-#   define TUFTY_QOI_FRAME_HEIGHT          240
+#ifndef RP2040_QOI_FRAME_HEIGHT
+#   define RP2040_QOI_FRAME_HEIGHT          240
 #endif
 
-#ifndef TUFTY_QOI_FRAME_PERIOD_MS
-#   define TUFTY_QOI_FRAME_PERIOD_MS       40
+#ifndef RP2040_QOI_FRAME_PERIOD_MS
+#   define RP2040_QOI_FRAME_PERIOD_MS       40
 #endif
 
 #undef this
 #define this (*ptThis)
 
-typedef struct tufty_qoi_scene_t {
+typedef struct rp2040_qoi_scene_t {
     implement(arm_2d_scene_t);
 
     int64_t timestamp;
@@ -42,20 +42,20 @@ typedef struct tufty_qoi_scene_t {
 
     int64_t fps_timestamp;
     uint32_t fps_frames;
-} tufty_qoi_scene_t;
+} rp2040_qoi_scene_t;
 
-static void tufty_qoi_scene_on_load(arm_2d_scene_t *scene)
+static void rp2040_qoi_scene_on_load(arm_2d_scene_t *scene)
 {
-    tufty_qoi_scene_t *ptThis = (tufty_qoi_scene_t *)scene;
+    rp2040_qoi_scene_t *ptThis = (rp2040_qoi_scene_t *)scene;
 
     if (this.qoi_ready) {
         arm_qoi_loader_on_load(&this.qoi);
     }
 }
 
-static void tufty_qoi_scene_depose(arm_2d_scene_t *scene)
+static void rp2040_qoi_scene_depose(arm_2d_scene_t *scene)
 {
-    tufty_qoi_scene_t *ptThis = (tufty_qoi_scene_t *)scene;
+    rp2040_qoi_scene_t *ptThis = (rp2040_qoi_scene_t *)scene;
 
     if (this.qoi_ready) {
         arm_qoi_loader_depose(&this.qoi);
@@ -67,9 +67,9 @@ static void tufty_qoi_scene_depose(arm_2d_scene_t *scene)
     }
 }
 
-static void tufty_qoi_scene_frame_start(arm_2d_scene_t *scene)
+static void rp2040_qoi_scene_frame_start(arm_2d_scene_t *scene)
 {
-    tufty_qoi_scene_t *ptThis = (tufty_qoi_scene_t *)scene;
+    rp2040_qoi_scene_t *ptThis = (rp2040_qoi_scene_t *)scene;
 
     if (this.qoi_ready) {
         if (this.use_film) {
@@ -100,19 +100,19 @@ static void tufty_qoi_scene_frame_start(arm_2d_scene_t *scene)
     }
 }
 
-static void tufty_qoi_scene_frame_complete(arm_2d_scene_t *scene)
+static void rp2040_qoi_scene_frame_complete(arm_2d_scene_t *scene)
 {
-    tufty_qoi_scene_t *ptThis = (tufty_qoi_scene_t *)scene;
+    rp2040_qoi_scene_t *ptThis = (rp2040_qoi_scene_t *)scene;
 
     if (this.qoi_ready) {
         arm_qoi_loader_on_frame_complete(&this.qoi);
     }
 }
 
-static IMPL_PFB_ON_DRAW(tufty_qoi_scene_draw)
+static IMPL_PFB_ON_DRAW(rp2040_qoi_scene_draw)
 {
     ARM_2D_PARAM(bIsNewFrame);
-    tufty_qoi_scene_t *ptThis = (tufty_qoi_scene_t *)pTarget;
+    rp2040_qoi_scene_t *ptThis = (rp2040_qoi_scene_t *)pTarget;
 
     arm_2d_canvas(ptTile, canvas) {
         arm_2d_fill_colour(ptTile, &canvas, GLCD_COLOR_BLACK);
@@ -163,12 +163,12 @@ static IMPL_PFB_ON_DRAW(tufty_qoi_scene_draw)
     return arm_fsm_rt_cpl;
 }
 
-static bool tufty_qoi_scene_init_qoi(tufty_qoi_scene_t *ptThis)
+static bool rp2040_qoi_scene_init_qoi(rp2040_qoi_scene_t *ptThis)
 {
     arm_2d_err_t err;
     arm_qoi_loader_cfg_t cfg;
 
-    err = arm_loader_io_fatfs_init(&this.qoi_file, TUFTY_QOI_FILE_PATH);
+    err = arm_loader_io_fatfs_init(&this.qoi_file, RP2040_QOI_FILE_PATH);
     if (ARM_2D_ERR_NONE != err) {
         printf("QOI FatFs IO init failed: %d\r\n", err);
         return false;
@@ -181,7 +181,7 @@ static bool tufty_qoi_scene_init_qoi(tufty_qoi_scene_t *ptThis)
     cfg.ImageIO.ptIO = &ARM_LOADER_IO_FATFS;
     cfg.ImageIO.pTarget = (uintptr_t)&this.qoi_file;
 #else
-#   error TUFTY_QOI scene requires __ARM_QOI_USE_LOADER_IO__
+#   error RP2040_QOI scene requires __ARM_QOI_USE_LOADER_IO__
 #endif
 
     err = arm_qoi_loader_init(&this.qoi, &cfg);
@@ -192,8 +192,8 @@ static bool tufty_qoi_scene_init_qoi(tufty_qoi_scene_t *ptThis)
 
     int16_t image_width = this.qoi.vres.tTile.tRegion.tSize.iWidth;
     int16_t image_height = this.qoi.vres.tTile.tRegion.tSize.iHeight;
-    uint16_t frame_columns = (uint16_t)(image_width / TUFTY_QOI_FRAME_WIDTH);
-    uint16_t frame_rows = (uint16_t)(image_height / TUFTY_QOI_FRAME_HEIGHT);
+    uint16_t frame_columns = (uint16_t)(image_width / RP2040_QOI_FRAME_WIDTH);
+    uint16_t frame_rows = (uint16_t)(image_height / RP2040_QOI_FRAME_HEIGHT);
     uint16_t frame_count = frame_columns * frame_rows;
 
     this.use_film =
@@ -204,37 +204,37 @@ static bool tufty_qoi_scene_init_qoi(tufty_qoi_scene_t *ptThis)
     if (this.use_film) {
         this.film = (arm_2d_helper_film_t)
             impl_film(this.qoi.vres.tTile,
-                      TUFTY_QOI_FRAME_WIDTH,
-                      TUFTY_QOI_FRAME_HEIGHT,
+                      RP2040_QOI_FRAME_WIDTH,
+                      RP2040_QOI_FRAME_HEIGHT,
                       frame_columns,
                       frame_count,
-                      TUFTY_QOI_FRAME_PERIOD_MS);
+                      RP2040_QOI_FRAME_PERIOD_MS);
     }
 
     printf("QOI ready: %s size=%dx%d film=%u frame=%dx%d cols=%u count=%u\r\n",
-           TUFTY_QOI_FILE_PATH,
+           RP2040_QOI_FILE_PATH,
            image_width,
            image_height,
            this.use_film ? 1u : 0u,
-           TUFTY_QOI_FRAME_WIDTH,
-           TUFTY_QOI_FRAME_HEIGHT,
+           RP2040_QOI_FRAME_WIDTH,
+           RP2040_QOI_FRAME_HEIGHT,
            frame_columns,
            frame_count);
 
     return true;
 }
 
-static tufty_qoi_scene_t *tufty_qoi_scene_init(arm_2d_scene_player_t *player,
-                                               tufty_qoi_scene_t *ptThis)
+static rp2040_qoi_scene_t *rp2040_qoi_scene_init(arm_2d_scene_player_t *player,
+                                               rp2040_qoi_scene_t *ptThis)
 {
     bool user_allocated = false;
 
     assert(NULL != player);
 
     if (NULL == ptThis) {
-        ptThis = (tufty_qoi_scene_t *)
-            __arm_2d_allocate_scratch_memory(sizeof(tufty_qoi_scene_t),
-                                             __alignof__(tufty_qoi_scene_t),
+        ptThis = (rp2040_qoi_scene_t *)
+            __arm_2d_allocate_scratch_memory(sizeof(rp2040_qoi_scene_t),
+                                             __alignof__(rp2040_qoi_scene_t),
                                              ARM_2D_MEM_TYPE_UNSPECIFIED);
         if (NULL == ptThis) {
             return NULL;
@@ -245,20 +245,20 @@ static tufty_qoi_scene_t *tufty_qoi_scene_init(arm_2d_scene_player_t *player,
 
     memset(ptThis, 0, sizeof(*ptThis));
 
-    *ptThis = (tufty_qoi_scene_t) {
+    *ptThis = (rp2040_qoi_scene_t) {
         .use_as__arm_2d_scene_t = {
             .tCanvas = {GLCD_COLOR_BLACK},
-            .fnOnLoad = tufty_qoi_scene_on_load,
-            .fnScene = tufty_qoi_scene_draw,
-            .fnOnFrameStart = tufty_qoi_scene_frame_start,
-            .fnOnFrameCPL = tufty_qoi_scene_frame_complete,
-            .fnDepose = tufty_qoi_scene_depose,
+            .fnOnLoad = rp2040_qoi_scene_on_load,
+            .fnScene = rp2040_qoi_scene_draw,
+            .fnOnFrameStart = rp2040_qoi_scene_frame_start,
+            .fnOnFrameCPL = rp2040_qoi_scene_frame_complete,
+            .fnDepose = rp2040_qoi_scene_depose,
             .bUseDirtyRegionHelper = true,
         },
         .user_allocated = user_allocated,
     };
 
-    this.qoi_ready = tufty_qoi_scene_init_qoi(ptThis);
+    this.qoi_ready = rp2040_qoi_scene_init_qoi(ptThis);
 
     arm_2d_scene_player_append_scenes(player,
                                       &this.use_as__arm_2d_scene_t,
@@ -267,7 +267,7 @@ static tufty_qoi_scene_t *tufty_qoi_scene_init(arm_2d_scene_player_t *player,
     return ptThis;
 }
 
-void tufty_qoi_scene_loader(void)
+void rp2040_qoi_scene_loader(void)
 {
-    (void)tufty_qoi_scene_init(&DISP0_ADAPTER, NULL);
+    (void)rp2040_qoi_scene_init(&DISP0_ADAPTER, NULL);
 }

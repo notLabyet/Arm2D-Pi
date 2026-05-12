@@ -2,7 +2,7 @@
  * @file drv_buzzer.h
  * @brief Passive buzzer driver for RP2040 using PWM and optional PCM playback.
  *
- * Hardware (Crystal_Mouse / Tufty2040 family):
+ * Hardware (Crystal_Mouse / RP2040 family):
  *   BEEF_EN -> GPIO23 -> series resistor -> passive magnetic buzzer (DET402-G-1).
  *   A passive buzzer needs a square wave or PWM tone; DC on/off does not produce sound.
  *

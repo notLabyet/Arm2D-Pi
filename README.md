@@ -1,5 +1,5 @@
 # Pico_Template (v2.3.2)
-An MDK template for Tufty2040
+An MDK template for RP2040
 
 - Use RPi official [RP2xxxx_DFP](https://www.keil.arm.com/packs/rp2xxx_dfp-raspberrypi/boards/)
 - Add Flash Programming algorithm.

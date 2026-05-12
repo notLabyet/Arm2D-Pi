@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "f_util.h"
-#include "tufty_sdcard.h"
+#include "rp2040_sdcard.h"
 
 static bool fatfs_io_open(uintptr_t target, void *loader);
 static void fatfs_io_close(uintptr_t target, void *loader);
@@ -62,7 +62,7 @@ static bool fatfs_io_open(uintptr_t target, void *loader)
         io->is_open = false;
     }
 
-    fr = tufty_sdcard_mount();
+    fr = rp2040_sdcard_mount();
     if (FR_OK != fr) {
         printf("FatFs IO SD mount failed: %s (%d)\r\n", FRESULT_str(fr), fr);
         return false;
@@ -71,7 +71,7 @@ static bool fatfs_io_open(uintptr_t target, void *loader)
     fr = f_open(&io->file, io->path, FA_READ);
     if (FR_OK != fr) {
         printf("FatFs IO open %s failed: %s (%d)\r\n", io->path, FRESULT_str(fr), fr);
-        tufty_sdcard_unmount();
+        rp2040_sdcard_unmount();
         return false;
     }
 

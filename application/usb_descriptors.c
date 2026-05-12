@@ -56,8 +56,8 @@ static uint8_t const s_chConfigurationDescriptor[] = {
 
 static char const *s_ppchStringDescriptor[] = {
     (const char[]){0x09, 0x04},
-    "Tufty2040",
-    "Tufty2040 Mouse + SD MSC",
+    "RP2040",
+    "RP2040 Mouse + SD MSC",
     "000001",
 };
 

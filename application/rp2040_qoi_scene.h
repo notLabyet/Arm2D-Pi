@@ -1,5 +1,5 @@
-#ifndef TUFTY_LMSK_SCENE_H
-#define TUFTY_LMSK_SCENE_H
+#ifndef RP2040_QOI_SCENE_H
+#define RP2040_QOI_SCENE_H
 
 #include "arm_2d_helper.h"
 
@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-void tufty_lmsk_scene_loader(void);
+void rp2040_qoi_scene_loader(void);
 
 #ifdef __cplusplus
 }

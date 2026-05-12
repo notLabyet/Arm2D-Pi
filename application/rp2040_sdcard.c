@@ -1,4 +1,4 @@
-#include "tufty_sdcard.h"
+#include "rp2040_sdcard.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -10,26 +10,26 @@
 #include "hw_config.h"
 #include "SDIO/SdioCard.h"
 
-#ifndef TUFTY_SDCARD_PERF_FILE
-#   define TUFTY_SDCARD_PERF_FILE           "sd_perf.bin"
+#ifndef RP2040_SDCARD_PERF_FILE
+#   define RP2040_SDCARD_PERF_FILE           "sd_perf.bin"
 #endif
-#ifndef TUFTY_SDCARD_PERF_DEFAULT_SIZE
-#   define TUFTY_SDCARD_PERF_DEFAULT_SIZE   (12u * 1024u * 1024u)
+#ifndef RP2040_SDCARD_PERF_DEFAULT_SIZE
+#   define RP2040_SDCARD_PERF_DEFAULT_SIZE   (12u * 1024u * 1024u)
 #endif
-#ifndef TUFTY_SDCARD_PERF_DEFAULT_CHUNK
-#   define TUFTY_SDCARD_PERF_DEFAULT_CHUNK  (8u * 1024u)
+#ifndef RP2040_SDCARD_PERF_DEFAULT_CHUNK
+#   define RP2040_SDCARD_PERF_DEFAULT_CHUNK  (8u * 1024u)
 #endif
-#ifndef TUFTY_SDCARD_PERF_MAX_RETRIES
-#   define TUFTY_SDCARD_PERF_MAX_RETRIES    3u
+#ifndef RP2040_SDCARD_PERF_MAX_RETRIES
+#   define RP2040_SDCARD_PERF_MAX_RETRIES    3u
 #endif
-#define TUFTY_SDCARD_PERF_PATTERN_SEED      0x5a17c3e9u
+#define RP2040_SDCARD_PERF_PATTERN_SEED      0x5a17c3e9u
 
 static FATFS s_sd_fs;
 static volatile bool s_sd_mounted;
-static uint8_t s_perf_write_buf[TUFTY_SDCARD_PERF_DEFAULT_CHUNK];
-static uint8_t s_perf_read_buf[TUFTY_SDCARD_PERF_DEFAULT_CHUNK];
+static uint8_t s_perf_write_buf[RP2040_SDCARD_PERF_DEFAULT_CHUNK];
+static uint8_t s_perf_read_buf[RP2040_SDCARD_PERF_DEFAULT_CHUNK];
 
-static void perf_capture_sdio_error(tufty_sdcard_perf_result_t *result)
+static void perf_capture_sdio_error(rp2040_sdcard_perf_result_t *result)
 {
     sd_card_t *card = sd_get_by_num(0);
 
@@ -109,7 +109,7 @@ static void dump_boot_like_info(const char *tag, const uint8_t *sector)
            tag, &sector[54], &sector[82], &sector[3]);
 }
 
-static void tufty_sdcard_dump_mount_debug(void)
+static void rp2040_sdcard_dump_mount_debug(void)
 {
     static uint8_t sector[512];
     DSTATUS status;
@@ -192,7 +192,7 @@ static void tufty_sdcard_dump_mount_debug(void)
     printf("SD mount debug end\r\n");
 }
 
-FRESULT tufty_sdcard_mount(void)
+FRESULT rp2040_sdcard_mount(void)
 {
     FRESULT fr;
 
@@ -205,13 +205,13 @@ FRESULT tufty_sdcard_mount(void)
         s_sd_mounted = true;
     } else {
         printf("SD f_mount failed: %s (%d)\r\n", FRESULT_str(fr), fr);
-        tufty_sdcard_dump_mount_debug();
+        rp2040_sdcard_dump_mount_debug();
     }
 
     return fr;
 }
 
-void tufty_sdcard_unmount(void)
+void rp2040_sdcard_unmount(void)
 {
     if (s_sd_mounted) {
         (void)f_unmount("");
@@ -219,17 +219,17 @@ void tufty_sdcard_unmount(void)
     }
 }
 
-bool tufty_sdcard_is_mounted(void)
+bool rp2040_sdcard_is_mounted(void)
 {
     return s_sd_mounted;
 }
 
-bool tufty_sdcard_write_test_file(void)
+bool rp2040_sdcard_write_test_file(void)
 {
     FIL file;
     FRESULT fr;
 
-    fr = tufty_sdcard_mount();
+    fr = rp2040_sdcard_mount();
     if (FR_OK != fr) {
         return false;
     }
@@ -240,7 +240,7 @@ bool tufty_sdcard_write_test_file(void)
         return false;
     }
 
-    if (f_printf(&file, "Tufty2040 SDIO write test\r\n") < 0) {
+    if (f_printf(&file, "RP2040 SDIO write test\r\n") < 0) {
         printf("SD f_printf failed\r\n");
         (void)f_close(&file);
         return false;
@@ -255,7 +255,7 @@ bool tufty_sdcard_write_test_file(void)
     return true;
 }
 
-FRESULT tufty_sdcard_write_file(const char *path,
+FRESULT rp2040_sdcard_write_file(const char *path,
                                 const void *data,
                                 UINT data_size,
                                 UINT *bytes_written)
@@ -271,7 +271,7 @@ FRESULT tufty_sdcard_write_file(const char *path,
         return FR_INVALID_PARAMETER;
     }
 
-    fr = tufty_sdcard_mount();
+    fr = rp2040_sdcard_mount();
     if (FR_OK != fr) {
         if (bytes_written) {
             *bytes_written = 0;
@@ -310,7 +310,7 @@ FRESULT tufty_sdcard_write_file(const char *path,
     return fr;
 }
 
-FRESULT tufty_sdcard_read_file(const char *path,
+FRESULT rp2040_sdcard_read_file(const char *path,
                                void *buffer,
                                UINT buffer_size,
                                UINT *bytes_read)
@@ -326,7 +326,7 @@ FRESULT tufty_sdcard_read_file(const char *path,
         return FR_INVALID_PARAMETER;
     }
 
-    fr = tufty_sdcard_mount();
+    fr = rp2040_sdcard_mount();
     if (FR_OK != fr) {
         if (bytes_read) {
             *bytes_read = 0;
@@ -363,24 +363,24 @@ FRESULT tufty_sdcard_read_file(const char *path,
     return fr;
 }
 
-bool tufty_sdcard_read_write_test(void)
+bool rp2040_sdcard_read_write_test(void)
 {
     static const char test_path[] = "sdio_rw_test.txt";
     static const char test_text[] =
-        "Tufty2040 SDIO read/write test\r\n"
+        "RP2040 SDIO read/write test\r\n"
         "If you can read this file, FatFs write and read both worked.\r\n";
     char read_buf[sizeof(test_text)];
     FRESULT fr;
     UINT bytes_written = 0;
     UINT bytes_read = 0;
 
-    fr = tufty_sdcard_write_file(test_path, test_text, sizeof(test_text) - 1u, &bytes_written);
+    fr = rp2040_sdcard_write_file(test_path, test_text, sizeof(test_text) - 1u, &bytes_written);
     if ((FR_OK != fr) || (bytes_written != sizeof(test_text) - 1u)) {
         return false;
     }
 
     memset(read_buf, 0, sizeof(read_buf));
-    fr = tufty_sdcard_read_file(test_path, read_buf, sizeof(test_text) - 1u, &bytes_read);
+    fr = rp2040_sdcard_read_file(test_path, read_buf, sizeof(test_text) - 1u, &bytes_read);
     if ((FR_OK != fr) || (bytes_read != sizeof(test_text) - 1u)) {
         return false;
     }
@@ -405,7 +405,7 @@ static uint32_t perf_speed_kib_per_s(uint32_t bytes, uint32_t time_ms)
 
 static uint8_t perf_pattern_byte(uint32_t offset)
 {
-    uint32_t x = offset ^ TUFTY_SDCARD_PERF_PATTERN_SEED;
+    uint32_t x = offset ^ RP2040_SDCARD_PERF_PATTERN_SEED;
 
     x ^= x >> 16;
     x *= 0x7feb352du;
@@ -444,7 +444,7 @@ static uint32_t perf_count_verify_errors(const uint8_t *buffer,
     return errors;
 }
 
-static void perf_print_result(const tufty_sdcard_perf_result_t *result)
+static void perf_print_result(const rp2040_sdcard_perf_result_t *result)
 {
     printf("SD perf result: %s\r\n", result->passed ? "PASS" : "FAIL");
     printf("  file=%lu bytes chunk=%lu bytes\r\n",
@@ -475,12 +475,12 @@ static void perf_print_result(const tufty_sdcard_perf_result_t *result)
            result->last_error);
 }
 
-bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
+bool rp2040_sdcard_perf_test(uint32_t file_size_bytes,
                             uint32_t chunk_size_bytes,
-                            tufty_sdcard_perf_result_t *result)
+                            rp2040_sdcard_perf_result_t *result)
 {
-    tufty_sdcard_perf_result_t local_result;
-    tufty_sdcard_perf_result_t *r = result ? result : &local_result;
+    rp2040_sdcard_perf_result_t local_result;
+    rp2040_sdcard_perf_result_t *r = result ? result : &local_result;
     FIL file;
     FRESULT fr;
     uint32_t offset;
@@ -501,23 +501,23 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
         return false;
     }
 
-    fr = tufty_sdcard_mount();
+    fr = rp2040_sdcard_mount();
     if (FR_OK != fr) {
         r->last_error = fr;
         perf_print_result(r);
         return false;
     }
 
-    (void)f_unlink(TUFTY_SDCARD_PERF_FILE);
+    (void)f_unlink(RP2040_SDCARD_PERF_FILE);
 
     printf("SD perf write/read test start: file=%lu bytes chunk=%lu bytes retries=%u\r\n",
            (unsigned long)file_size_bytes,
            (unsigned long)chunk_size_bytes,
-           (unsigned)TUFTY_SDCARD_PERF_MAX_RETRIES);
+           (unsigned)RP2040_SDCARD_PERF_MAX_RETRIES);
 
     perf_fill_buffer(s_perf_write_buf, (UINT)chunk_size_bytes);
 
-    fr = f_open(&file, TUFTY_SDCARD_PERF_FILE, FA_CREATE_ALWAYS | FA_WRITE);
+    fr = f_open(&file, RP2040_SDCARD_PERF_FILE, FA_CREATE_ALWAYS | FA_WRITE);
     if (FR_OK != fr) {
         r->last_error = fr;
         perf_print_result(r);
@@ -530,7 +530,7 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
                               (file_size_bytes - offset) : chunk_size_bytes);
         bool chunk_done = false;
 
-        for (uint32_t attempt = 0; attempt <= TUFTY_SDCARD_PERF_MAX_RETRIES; ++attempt) {
+        for (uint32_t attempt = 0; attempt <= RP2040_SDCARD_PERF_MAX_RETRIES; ++attempt) {
             UINT written = 0;
             fr = f_write(&file, s_perf_write_buf, request, &written);
 
@@ -551,7 +551,7 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
                     r->last_error = FR_DISK_ERR;
                 }
             }
-            if (attempt < TUFTY_SDCARD_PERF_MAX_RETRIES) {
+            if (attempt < RP2040_SDCARD_PERF_MAX_RETRIES) {
                 r->write_retries++;
                 (void)f_lseek(&file, offset);
             }
@@ -589,7 +589,7 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
         return false;
     }
 
-    fr = f_open(&file, TUFTY_SDCARD_PERF_FILE, FA_READ);
+    fr = f_open(&file, RP2040_SDCARD_PERF_FILE, FA_READ);
     if (FR_OK != fr) {
         r->last_error = fr;
         perf_print_result(r);
@@ -601,7 +601,7 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
                               (file_size_bytes - offset) : chunk_size_bytes);
         bool chunk_done = false;
 
-        for (uint32_t attempt = 0; attempt <= TUFTY_SDCARD_PERF_MAX_RETRIES; ++attempt) {
+        for (uint32_t attempt = 0; attempt <= RP2040_SDCARD_PERF_MAX_RETRIES; ++attempt) {
             uint32_t read_start_ms;
             UINT read_count = 0;
             read_start_ms = millis();
@@ -625,7 +625,7 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
                     r->last_error = FR_DISK_ERR;
                 }
             }
-            if (attempt < TUFTY_SDCARD_PERF_MAX_RETRIES) {
+            if (attempt < RP2040_SDCARD_PERF_MAX_RETRIES) {
                 r->read_retries++;
                 (void)f_lseek(&file, offset);
             }
@@ -666,9 +666,9 @@ bool tufty_sdcard_perf_test(uint32_t file_size_bytes,
     return r->passed;
 }
 
-bool tufty_sdcard_default_perf_test(void)
+bool rp2040_sdcard_default_perf_test(void)
 {
-    return tufty_sdcard_perf_test(TUFTY_SDCARD_PERF_DEFAULT_SIZE,
-                                  TUFTY_SDCARD_PERF_DEFAULT_CHUNK,
+    return rp2040_sdcard_perf_test(RP2040_SDCARD_PERF_DEFAULT_SIZE,
+                                  RP2040_SDCARD_PERF_DEFAULT_CHUNK,
                                   NULL);
 }

@@ -494,7 +494,7 @@ void dcd_init (uint8_t rhport)
   usb_hw->pwr = USB_USB_PWR_VBUS_DETECT_BITS | USB_USB_PWR_VBUS_DETECT_OVERRIDE_EN_BITS;
 #endif
 
-#ifndef TUFTY2040_STATIC_USB_IRQ_HANDLER
+#ifndef RP2040_STATIC_USB_IRQ_HANDLER
   irq_add_shared_handler(USBCTRL_IRQ, dcd_rp2040_irq, PICO_SHARED_IRQ_HANDLER_HIGHEST_ORDER_PRIORITY);
 #endif
 

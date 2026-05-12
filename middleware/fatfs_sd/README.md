@@ -1,6 +1,6 @@
 # FatFs SD Middleware
 
-This directory contains the SD card middleware used by the Tufty2040 Keil
+This directory contains the SD card middleware used by the RP2040 Keil
 project. It combines ChaN FatFs with the RP2040 SDIO/SPI block driver from
 `carlk3/no-OS-FatFS-SD-SDIO-SPI-RPi-Pico`.
 
@@ -31,7 +31,7 @@ large style-only edits unless you are fixing a real bug.
 The board-specific SDIO configuration is in:
 
 ```text
-port/tufty_sdcard_config.h
+port/rp2040_sdcard_config.h
 port/hw_config.c
 ```
 
@@ -47,15 +47,15 @@ D3   = GPIO8
 ```
 
 The SDIO PIO program requires `CLK = D0 - 2` and `D1..D3 = D0 + 1..3`. If the
-schematic changes, update `TUFTY_SDIO_CMD_GPIO` and `TUFTY_SDIO_D0_GPIO`.
+schematic changes, update `RP2040_SDIO_CMD_GPIO` and `RP2040_SDIO_D0_GPIO`.
 
 ## Application Entry Points
 
 Most application code should not call low-level SD driver functions directly.
-Use the wrapper in `application/tufty_sdcard.c`:
+Use the wrapper in `application/rp2040_sdcard.c`:
 
 ```c
-FRESULT fr = tufty_sdcard_mount();
+FRESULT fr = rp2040_sdcard_mount();
 ```
 
 For resource streaming into Arm-2D, use:
@@ -66,7 +66,7 @@ arm_loader_io_fatfs_init(&io, "asset.lmsk");
 
 ## Debugging Mount Failures
 
-`tufty_sdcard_mount()` prints extra diagnostics if `f_mount()` fails:
+`rp2040_sdcard_mount()` prints extra diagnostics if `f_mount()` fails:
 
 - disk status before/after init
 - card sector count

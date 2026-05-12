@@ -1,4 +1,4 @@
-#include "tufty_lmsk_scene.h"
+#include "rp2040_lmsk_scene.h"
 
 #include <assert.h>
 #include <inttypes.h>
@@ -11,34 +11,34 @@
 #include "arm_loader_io_fatfs.h"
 #include "lmsk_loader.h"
 
-#ifndef TUFTY_LMSK_FILE_PATH
-#   define TUFTY_LMSK_FILE_PATH             "bad_apple_100x75_16_a4.lmsk"
+#ifndef RP2040_LMSK_FILE_PATH
+#   define RP2040_LMSK_FILE_PATH             "bad_apple_100x75_16_a4.lmsk"
 #endif
 
-#ifndef TUFTY_LMSK_FRAME_WIDTH
-#   define TUFTY_LMSK_FRAME_WIDTH           100
+#ifndef RP2040_LMSK_FRAME_WIDTH
+#   define RP2040_LMSK_FRAME_WIDTH           100
 #endif
 
-#ifndef TUFTY_LMSK_FRAME_HEIGHT
-#   define TUFTY_LMSK_FRAME_HEIGHT          75
+#ifndef RP2040_LMSK_FRAME_HEIGHT
+#   define RP2040_LMSK_FRAME_HEIGHT          75
 #endif
 
-#ifndef TUFTY_LMSK_FRAME_COLUMNS
-#   define TUFTY_LMSK_FRAME_COLUMNS         16
+#ifndef RP2040_LMSK_FRAME_COLUMNS
+#   define RP2040_LMSK_FRAME_COLUMNS         16
 #endif
 
-#ifndef TUFTY_LMSK_FRAME_COUNT
-#   define TUFTY_LMSK_FRAME_COUNT           3110
+#ifndef RP2040_LMSK_FRAME_COUNT
+#   define RP2040_LMSK_FRAME_COUNT           3110
 #endif
 
-#ifndef TUFTY_LMSK_FRAME_PERIOD_MS
-#   define TUFTY_LMSK_FRAME_PERIOD_MS       33
+#ifndef RP2040_LMSK_FRAME_PERIOD_MS
+#   define RP2040_LMSK_FRAME_PERIOD_MS       33
 #endif
 
 #undef this
 #define this (*ptThis)
 
-typedef struct tufty_lmsk_scene_t {
+typedef struct rp2040_lmsk_scene_t {
     implement(arm_2d_scene_t);
 
     int64_t timestamp[2];
@@ -53,7 +53,7 @@ typedef struct tufty_lmsk_scene_t {
     arm_lmsk_loader_t animation;
     arm_loader_io_fatfs_t lmsk_file;
     arm_2d_helper_film_t film;
-} tufty_lmsk_scene_t;
+} rp2040_lmsk_scene_t;
 
 static uint32_t const c_colour_table[] = {
     __RGB32(0xff, 0x00, 0x00),
@@ -66,18 +66,18 @@ static uint32_t const c_colour_table[] = {
     __RGB32(0xff, 0x80, 0x00),
 };
 
-static void tufty_lmsk_scene_on_load(arm_2d_scene_t *scene)
+static void rp2040_lmsk_scene_on_load(arm_2d_scene_t *scene)
 {
-    tufty_lmsk_scene_t *ptThis = (tufty_lmsk_scene_t *)scene;
+    rp2040_lmsk_scene_t *ptThis = (rp2040_lmsk_scene_t *)scene;
 
     if (this.lmsk_ready) {
         arm_lmsk_loader_on_load(&this.animation);
     }
 }
 
-static void tufty_lmsk_scene_depose(arm_2d_scene_t *scene)
+static void rp2040_lmsk_scene_depose(arm_2d_scene_t *scene)
 {
-    tufty_lmsk_scene_t *ptThis = (tufty_lmsk_scene_t *)scene;
+    rp2040_lmsk_scene_t *ptThis = (rp2040_lmsk_scene_t *)scene;
 
     if (this.lmsk_ready) {
         arm_lmsk_loader_depose(&this.animation);
@@ -89,9 +89,9 @@ static void tufty_lmsk_scene_depose(arm_2d_scene_t *scene)
     }
 }
 
-static void tufty_lmsk_scene_frame_start(arm_2d_scene_t *scene)
+static void rp2040_lmsk_scene_frame_start(arm_2d_scene_t *scene)
 {
-    tufty_lmsk_scene_t *ptThis = (tufty_lmsk_scene_t *)scene;
+    rp2040_lmsk_scene_t *ptThis = (rp2040_lmsk_scene_t *)scene;
 
     if (!this.lmsk_ready) {
         return;
@@ -135,19 +135,19 @@ static void tufty_lmsk_scene_frame_start(arm_2d_scene_t *scene)
     arm_lmsk_loader_on_frame_start(&this.animation);
 }
 
-static void tufty_lmsk_scene_frame_complete(arm_2d_scene_t *scene)
+static void rp2040_lmsk_scene_frame_complete(arm_2d_scene_t *scene)
 {
-    tufty_lmsk_scene_t *ptThis = (tufty_lmsk_scene_t *)scene;
+    rp2040_lmsk_scene_t *ptThis = (rp2040_lmsk_scene_t *)scene;
 
     if (this.lmsk_ready) {
         arm_lmsk_loader_on_frame_complete(&this.animation);
     }
 }
 
-static IMPL_PFB_ON_DRAW(tufty_lmsk_scene_draw)
+static IMPL_PFB_ON_DRAW(rp2040_lmsk_scene_draw)
 {
     ARM_2D_PARAM(bIsNewFrame);
-    tufty_lmsk_scene_t *ptThis = (tufty_lmsk_scene_t *)pTarget;
+    rp2040_lmsk_scene_t *ptThis = (rp2040_lmsk_scene_t *)pTarget;
 
     arm_2d_canvas(ptTile, canvas) {
         arm_2d_fill_colour(ptTile, &canvas, GLCD_COLOR_BLACK);
@@ -202,12 +202,12 @@ static IMPL_PFB_ON_DRAW(tufty_lmsk_scene_draw)
     return arm_fsm_rt_cpl;
 }
 
-static bool tufty_lmsk_scene_init_lmsk(tufty_lmsk_scene_t *ptThis)
+static bool rp2040_lmsk_scene_init_lmsk(rp2040_lmsk_scene_t *ptThis)
 {
     arm_2d_err_t err;
     arm_lmsk_loader_cfg_t cfg;
 
-    err = arm_loader_io_fatfs_init(&this.lmsk_file, TUFTY_LMSK_FILE_PATH);
+    err = arm_loader_io_fatfs_init(&this.lmsk_file, RP2040_LMSK_FILE_PATH);
     if (ARM_2D_ERR_NONE != err) {
         printf("LMSK FatFs IO init failed: %d\r\n", err);
         return false;
@@ -219,7 +219,7 @@ static bool tufty_lmsk_scene_init_lmsk(tufty_lmsk_scene_t *ptThis)
     cfg.ImageIO.ptIO = &ARM_LOADER_IO_FATFS;
     cfg.ImageIO.pTarget = (uintptr_t)&this.lmsk_file;
 #else
-#   error TUFTY_LMSK scene requires __ARM_LMSK_USE_LOADER_IO__
+#   error RP2040_LMSK scene requires __ARM_LMSK_USE_LOADER_IO__
 #endif
 
     err = arm_lmsk_loader_init(&this.animation, &cfg);
@@ -230,38 +230,38 @@ static bool tufty_lmsk_scene_init_lmsk(tufty_lmsk_scene_t *ptThis)
 
     this.film = (arm_2d_helper_film_t)
         impl_film(this.animation,
-                  TUFTY_LMSK_FRAME_WIDTH,
-                  TUFTY_LMSK_FRAME_HEIGHT,
-                  TUFTY_LMSK_FRAME_COLUMNS,
-                  TUFTY_LMSK_FRAME_COUNT,
-                  TUFTY_LMSK_FRAME_PERIOD_MS);
+                  RP2040_LMSK_FRAME_WIDTH,
+                  RP2040_LMSK_FRAME_HEIGHT,
+                  RP2040_LMSK_FRAME_COLUMNS,
+                  RP2040_LMSK_FRAME_COUNT,
+                  RP2040_LMSK_FRAME_PERIOD_MS);
 
     this.previous_colour = c_colour_table[0];
     this.colour_table_index = 1;
     this.colour = arm_2d_pixel_from_brga8888(c_colour_table[0]);
 
     printf("LMSK ready: %s frame=%dx%d cols=%u count=%u period=%ums\r\n",
-           TUFTY_LMSK_FILE_PATH,
-           TUFTY_LMSK_FRAME_WIDTH,
-           TUFTY_LMSK_FRAME_HEIGHT,
-           (unsigned)TUFTY_LMSK_FRAME_COLUMNS,
-           (unsigned)TUFTY_LMSK_FRAME_COUNT,
-           (unsigned)TUFTY_LMSK_FRAME_PERIOD_MS);
+           RP2040_LMSK_FILE_PATH,
+           RP2040_LMSK_FRAME_WIDTH,
+           RP2040_LMSK_FRAME_HEIGHT,
+           (unsigned)RP2040_LMSK_FRAME_COLUMNS,
+           (unsigned)RP2040_LMSK_FRAME_COUNT,
+           (unsigned)RP2040_LMSK_FRAME_PERIOD_MS);
 
     return true;
 }
 
-static tufty_lmsk_scene_t *tufty_lmsk_scene_init(arm_2d_scene_player_t *player,
-                                                 tufty_lmsk_scene_t *ptThis)
+static rp2040_lmsk_scene_t *rp2040_lmsk_scene_init(arm_2d_scene_player_t *player,
+                                                 rp2040_lmsk_scene_t *ptThis)
 {
     bool user_allocated = false;
 
     assert(NULL != player);
 
     if (NULL == ptThis) {
-        ptThis = (tufty_lmsk_scene_t *)
-            __arm_2d_allocate_scratch_memory(sizeof(tufty_lmsk_scene_t),
-                                             __alignof__(tufty_lmsk_scene_t),
+        ptThis = (rp2040_lmsk_scene_t *)
+            __arm_2d_allocate_scratch_memory(sizeof(rp2040_lmsk_scene_t),
+                                             __alignof__(rp2040_lmsk_scene_t),
                                              ARM_2D_MEM_TYPE_UNSPECIFIED);
         if (NULL == ptThis) {
             return NULL;
@@ -272,20 +272,20 @@ static tufty_lmsk_scene_t *tufty_lmsk_scene_init(arm_2d_scene_player_t *player,
 
     memset(ptThis, 0, sizeof(*ptThis));
 
-    *ptThis = (tufty_lmsk_scene_t) {
+    *ptThis = (rp2040_lmsk_scene_t) {
         .use_as__arm_2d_scene_t = {
             .tCanvas = {GLCD_COLOR_BLACK},
-            .fnOnLoad = tufty_lmsk_scene_on_load,
-            .fnScene = tufty_lmsk_scene_draw,
-            .fnOnFrameStart = tufty_lmsk_scene_frame_start,
-            .fnOnFrameCPL = tufty_lmsk_scene_frame_complete,
-            .fnDepose = tufty_lmsk_scene_depose,
+            .fnOnLoad = rp2040_lmsk_scene_on_load,
+            .fnScene = rp2040_lmsk_scene_draw,
+            .fnOnFrameStart = rp2040_lmsk_scene_frame_start,
+            .fnOnFrameCPL = rp2040_lmsk_scene_frame_complete,
+            .fnDepose = rp2040_lmsk_scene_depose,
             .bUseDirtyRegionHelper = true,
         },
         .user_allocated = user_allocated,
     };
 
-    this.lmsk_ready = tufty_lmsk_scene_init_lmsk(ptThis);
+    this.lmsk_ready = rp2040_lmsk_scene_init_lmsk(ptThis);
 
     arm_2d_scene_player_append_scenes(player,
                                       &this.use_as__arm_2d_scene_t,
@@ -294,7 +294,7 @@ static tufty_lmsk_scene_t *tufty_lmsk_scene_init(arm_2d_scene_player_t *player,
     return ptThis;
 }
 
-void tufty_lmsk_scene_loader(void)
+void rp2040_lmsk_scene_loader(void)
 {
-    (void)tufty_lmsk_scene_init(&DISP0_ADAPTER, NULL);
+    (void)rp2040_lmsk_scene_init(&DISP0_ADAPTER, NULL);
 }

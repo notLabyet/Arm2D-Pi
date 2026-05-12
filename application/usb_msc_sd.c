@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "diskio.h"
-#include "tufty_sdcard.h"
+#include "rp2040_sdcard.h"
 #include "tusb.h"
 
 #define USB_MSC_SD_PDRV          0u
@@ -37,7 +37,7 @@ static bool usb_msc_sd_ensure_ready(void)
 {
     LBA_t sector_count = 0;
 
-    if (tufty_sdcard_is_mounted()) {
+    if (rp2040_sdcard_is_mounted()) {
         return false;
     }
 
@@ -65,7 +65,7 @@ static bool usb_msc_sd_ensure_ready(void)
 
 bool usb_msc_sd_init(void)
 {
-    tufty_sdcard_unmount();
+    rp2040_sdcard_unmount();
     s_msc_ready = false;
     s_msc_block_count = 0;
     s_msc_write10_count = 0;
@@ -102,7 +102,7 @@ void tud_msc_inquiry_cb(uint8_t lun,
 {
     (void)lun;
 
-    memcpy(vendor_id, "Tufty   ", 8);
+    memcpy(vendor_id, "RP2040  ", 8);
     memcpy(product_id, "SD Card         ", 16);
     memcpy(product_rev, "1.0 ", 4);
 }
@@ -111,7 +111,7 @@ bool tud_msc_test_unit_ready_cb(uint8_t lun)
 {
     (void)lun;
 
-    if (tufty_sdcard_is_mounted()) {
+    if (rp2040_sdcard_is_mounted()) {
         tud_msc_set_sense(lun, SCSI_SENSE_NOT_READY, 0x04, 0x01);
         return false;
     }
@@ -128,7 +128,7 @@ void tud_msc_capacity_cb(uint8_t lun, uint32_t *block_count, uint16_t *block_siz
 {
     (void)lun;
 
-    if (tufty_sdcard_is_mounted()) {
+    if (rp2040_sdcard_is_mounted()) {
         *block_count = 0u;
         *block_size = USB_MSC_SD_BLOCK_SIZE;
         return;
@@ -298,7 +298,7 @@ bool tud_msc_start_stop_cb(uint8_t lun,
 
     if ((!start) || load_eject) {
         s_msc_sync_count++;
-        if (!tufty_sdcard_is_mounted()) {
+        if (!rp2040_sdcard_is_mounted()) {
             (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
         }
         USB_MSC_STATS_PRINTF("USB MSC stop/eject sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",
@@ -325,7 +325,7 @@ int32_t tud_msc_scsi_cb(uint8_t lun,
 
         case USB_MSC_SCSI_CMD_SYNCHRONIZE_CACHE_10:
             s_msc_sync_count++;
-            if (!tufty_sdcard_is_mounted()) {
+            if (!rp2040_sdcard_is_mounted()) {
                 (void)disk_ioctl(USB_MSC_SD_PDRV, CTRL_SYNC, NULL);
             }
             USB_MSC_STATS_PRINTF("USB MSC sync: count=%lu write_cb=%lu write_kib=%lu max_buf=%lu\r\n",

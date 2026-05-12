@@ -454,8 +454,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\application\tufty_sdcard.c</PathWithFileName>
-      <FilenameWithoutPath>tufty_sdcard.c</FilenameWithoutPath>
+      <PathWithFileName>..\..\application\rp2040_sdcard.c</PathWithFileName>
+      <FilenameWithoutPath>rp2040_sdcard.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -490,8 +490,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\application\tufty_qoi_scene.c</PathWithFileName>
-      <FilenameWithoutPath>tufty_qoi_scene.c</FilenameWithoutPath>
+      <PathWithFileName>..\..\application\rp2040_qoi_scene.c</PathWithFileName>
+      <FilenameWithoutPath>rp2040_qoi_scene.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -502,8 +502,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\application\tufty_qoi_scene.h</PathWithFileName>
-      <FilenameWithoutPath>tufty_qoi_scene.h</FilenameWithoutPath>
+      <PathWithFileName>..\..\application\rp2040_qoi_scene.h</PathWithFileName>
+      <FilenameWithoutPath>rp2040_qoi_scene.h</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -514,8 +514,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\application\tufty_lmsk_scene.c</PathWithFileName>
-      <FilenameWithoutPath>tufty_lmsk_scene.c</FilenameWithoutPath>
+      <PathWithFileName>..\..\application\rp2040_lmsk_scene.c</PathWithFileName>
+      <FilenameWithoutPath>rp2040_lmsk_scene.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -526,8 +526,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\application\tufty_lmsk_scene.h</PathWithFileName>
-      <FilenameWithoutPath>tufty_lmsk_scene.h</FilenameWithoutPath>
+      <PathWithFileName>..\..\application\rp2040_lmsk_scene.h</PathWithFileName>
+      <FilenameWithoutPath>rp2040_lmsk_scene.h</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -1122,8 +1122,8 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\..\middleware\fatfs_sd\port\tufty_sdcard_config.h</PathWithFileName>
-      <FilenameWithoutPath>tufty_sdcard_config.h</FilenameWithoutPath>
+      <PathWithFileName>..\..\middleware\fatfs_sd\port\rp2040_sdcard_config.h</PathWithFileName>
+      <FilenameWithoutPath>rp2040_sdcard_config.h</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
@@ -1131,7 +1131,7 @@
 
   <Group>
     <GroupName>::Acceleration</GroupName>
-    <tvExp>1</tvExp>
+    <tvExp>0</tvExp>
     <tvExpOptDlg>0</tvExpOptDlg>
     <cbSel>0</cbSel>
     <RteFlg>1</RteFlg>

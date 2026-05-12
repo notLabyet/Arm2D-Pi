@@ -339,7 +339,7 @@
             <v6Rtti>0</v6Rtti>
             <VariousControls>
               <MiscControls>-include "app_cfg.h"</MiscControls>
-              <Define>USING_RP2040_PWM,PICO_RP2040_USB_DEVICE_UFRAME_FIX=0,PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1,PICO_TIME_DEFAULT_ALARM_POOL_DISABLED=1,TUFTY2040_STATIC_USB_IRQ_HANDLER=1</Define>
+              <Define>USING_RP2040_PWM,PICO_RP2040_USB_DEVICE_UFRAME_FIX=0,PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1,PICO_TIME_DEFAULT_ALARM_POOL_DISABLED=1,RP2040_STATIC_USB_IRQ_HANDLER=1</Define>
               <Undefine></Undefine>
               <IncludePath>.;..\..\deivers;..\..\application;..\..\lib\tinyusb\src;..\..\lib\tinyusb\src\portable\raspberrypi\rp2040;..\..\lib\pico_fix\rp2040_usb_device_enumeration\include;..\..\middleware\fatfs_sd\include;..\..\middleware\fatfs_sd\ff15\source;..\..\middleware\fatfs_sd\sd_driver;..\..\middleware\fatfs_sd\sd_driver\SDIO;..\..\middleware\fatfs_sd\sd_driver\SPI;..\..\middleware\fatfs_sd\port;D:\Users\17585\AppData\Local\Arm\Packs\ARM\Arm-2D\1.2.6\examples\common\loader;D:\Users\17585\AppData\Local\Arm\Packs\ARM\Arm-2D\1.2.6\examples\common\loader\qoi_loader;D:\Users\17585\AppData\Local\Arm\Packs\ARM\Arm-2D\1.2.6\examples\common\loader\qoi_loader\qoi_decoder;D:\Users\17585\AppData\Local\Arm\Packs\ARM\Arm-2D\1.2.6\examples\common\loader\lmsk_loader;D:\Users\17585\AppData\Local\Arm\Packs\ARM\Arm-2D\1.2.6\examples\common\loader\lmsk_loader\lmsk;D:\Users\17585\AppData\Local\Arm\Packs\ARM\Arm-2D\1.2.6\examples\common\loader\lmsk_loader\lmsk\decoder</IncludePath>
             </VariousControls>
@@ -446,9 +446,9 @@
               <FilePath>..\..\application\usb_debug.c</FilePath>
             </File>
             <File>
-              <FileName>tufty_sdcard.c</FileName>
+              <FileName>rp2040_sdcard.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\application\tufty_sdcard.c</FilePath>
+              <FilePath>..\..\application\rp2040_sdcard.c</FilePath>
             </File>
             <File>
               <FileName>arm_loader_io_fatfs.c</FileName>
@@ -461,24 +461,24 @@
               <FilePath>..\..\application\arm_loader_io_fatfs.h</FilePath>
             </File>
             <File>
-              <FileName>tufty_qoi_scene.c</FileName>
+              <FileName>rp2040_qoi_scene.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\application\tufty_qoi_scene.c</FilePath>
+              <FilePath>..\..\application\rp2040_qoi_scene.c</FilePath>
             </File>
             <File>
-              <FileName>tufty_qoi_scene.h</FileName>
+              <FileName>rp2040_qoi_scene.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\application\tufty_qoi_scene.h</FilePath>
+              <FilePath>..\..\application\rp2040_qoi_scene.h</FilePath>
             </File>
             <File>
-              <FileName>tufty_lmsk_scene.c</FileName>
+              <FileName>rp2040_lmsk_scene.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\..\application\tufty_lmsk_scene.c</FilePath>
+              <FilePath>..\..\application\rp2040_lmsk_scene.c</FilePath>
             </File>
             <File>
-              <FileName>tufty_lmsk_scene.h</FileName>
+              <FileName>rp2040_lmsk_scene.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\application\tufty_lmsk_scene.h</FilePath>
+              <FilePath>..\..\application\rp2040_lmsk_scene.h</FilePath>
             </File>
             <File>
               <FileName>ir_task.c</FileName>
@@ -731,9 +731,9 @@
               <FilePath>..\..\middleware\fatfs_sd\port\hw_config.c</FilePath>
             </File>
             <File>
-              <FileName>tufty_sdcard_config.h</FileName>
+              <FileName>rp2040_sdcard_config.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\..\middleware\fatfs_sd\port\tufty_sdcard_config.h</FilePath>
+              <FilePath>..\..\middleware\fatfs_sd\port\rp2040_sdcard_config.h</FilePath>
             </File>
           </Files>
         </Group>
