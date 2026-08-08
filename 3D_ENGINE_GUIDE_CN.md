@@ -1,6 +1,6 @@
 # RP2040 Arm-2D 3D Demo 说明
 
-本文档说明 `02_RP2040_Keil-arm2d_3d` 中的轻量级 3D 引擎、模型数据接口和网格转换工具。渲染器面向 RP2040 的 Arm-2D PFB（Partial Frame Buffer）路径，使用 Q16 定点坐标、Q31 角度和 RGB565 帧缓冲，不依赖 GPU。
+本文档说明 `02_RP2040_Keil-arm2d_3d` 中的轻量级 3D 引擎、模型数据接口和网格转换工具。渲染器面向 RP2040 的 Arm-2D PFB（Partial Frame Buffer）路径，使用 Q16 定点坐标、Q31 角度和 RGB565 帧缓冲，不依赖 FPU。
 
 ## 1. 渲染流程
 
@@ -21,27 +21,20 @@
 
 ## 2. 3D 引擎源码和接口
 
+底层原理可以参考 https://www.bilibili.com/video/BV13Fjn6QEyn/?spm_id_from=333.337.search-card.all.click  这也是demo第一个版本的来源
+
 ### 2.1 核心渲染器
 
 | 文件 | 作用 | 对外接口/关键配置 |
 | --- | --- | --- |
 | `3d/user_generic_loader_3d.c` | 3D generic loader 实现。维护模型实例表、模型/相机矩阵、投影顶点、可见面排序和局部 Z 缓冲；提供 RGB565 三角形填充、深度测试、平面/平滑光照、线框和深度雾。当前默认实例是 `rose_vertices/rose_tris`，其余模型实例可在 `s_tModelInstances` 中切换或添加。 | `ThD_sim_init`、`ThD_sim_depose`、`ThD_sim_on_load`、`ThD_sim_on_frame_start`、`ThD_sim_on_frame_complete`、`ThD_sim_set_depth_fog_strength`、`ThD_sim_show`。`ThD_sim_cfg_t` 包含输出尺寸、PFB 临时资源是否使用堆、深度雾强度、屏幕偏移、Arm-2D IO 和 scene 指针。 |
 | `3d/user_generic_loader_3d.h` | 3D loader 的公共类型和声明；`ThD_sim_t` 继承 `arm_generic_loader_t`，并保存姿态、时钟、视差和交互矩阵。未启用对应 RTE 组件时，接口宏展开为 `ARM_2D_ERR_NOT_AVAILABLE`/空操作。 | 见上行接口；应用层典型顺序为 `init -> on_load -> 每帧 on_frame_start/show/on_frame_complete -> depose`。 |
-| `3d/ThD_test.c` | Q16/Q31 数学和姿态处理：旋转矩阵、近似平方根/反正切、透视投影、Q16 屏幕映射；包含基于加速度计/陀螺仪的简化姿态滤波、校准、偏航回中，以及 Mahony 四元数更新。文件末尾还提供 8 顶点测试立方体。 | `build_rot_matrix`、`sqrt_q16`、`apply_rot`、`projection`、`to_screen`、`imu_update_euler`、`imu_holo_update_raw`、`imu_holo_step`、`imu_holo_angle_to_q31`、`mahony_update`、`quat_to_matrix`。 |
+| `3d/ThD_test.c` | Q16/Q31 数学和姿态处理：旋转矩阵、近似平方根/反正切、透视投影、Q16 屏幕映射；包含基于加速度计/陀螺仪的简化姿态滤波、校准、偏航回中.文件末尾还提供 8 顶点测试立方体。 | `build_rot_matrix`、`sqrt_q16`、`apply_rot`、`projection`、`to_screen`、`imu_update_euler`、`imu_holo_update_raw`、`imu_holo_step`、`imu_holo_angle_to_q31`、`mahony_update`、`quat_to_matrix`。 |
 | `3d/ThD_test.h` | 定义 `Thd_point_t`（三个 Q16 坐标）、`point_t`、`tri_t`（三个 `uint16_t` 顶点索引）、`mat3_t`、`quat_t` 和 `attitude_t` 等基础类型。`Q16(x)` 将浮点常量转为 16.16 定点，`Q31(x)` 将一圈比例转为 Q31。 | 数学函数声明、`cube_vertices/cube_tris` 测试数据；可通过 `CANVA_WIDTH`、`CANVA_HEIGHT`、`DEPTH` 覆盖默认 240x240 画布和投影深度。 |
 | `3d/thd_clock_hands.c` | 将毫秒时间转换为 Q31 的时针/分针旋转角，供模型实例绑定 `tClockHand` 后做 Z 轴动画；处理计时器回绕。 | `thd_clock_hands_init`、`thd_clock_hands_update`、`thd_clock_hands_get_angle`。 |
 | `3d/thd_clock_hands.h` | 时钟动画状态和句柄枚举。`THD_CLOCK_HANDS_MINUTE_PERIOD_MS` 默认 60 秒，小时周期为 12 分钟周期。 | `thd_clock_hand_t`（`NONE/HOUR/MINUTE`）、`thd_clock_hands_t`。 |
 
 `user_generic_loader_3d.c` 中的模型实例字段含义：`ptVertices/ptTris` 指向模型数组；`pi16FaceNormalsQ14` 可选的面法线；`hwVertexCount/hwTriCount` 是容量；`hwColour/hwWireframeColour` 为 RGB565 颜色；`tClockHand` 绑定时针或分针；`q16Scale` 和 `tOffset` 控制模型大小/位置；`tInitialAngleOffset` 是 Q31 初始欧拉角。
-
-### 2.2 辅助 Arm-2D 弧形 loader
-
-弧形 loader 不是 3D 光栅器，但可用于仪表盘、表针背景等 3D 场景配套 UI。
-
-| 文件 | 作用 | 对外接口 |
-| --- | --- | --- |
-| `3d/user_generic_loader_arc.c` | 在 RGB565 PFB 中绘制带内外边界的圆弧/圆环，使用整数平方根和 Q14 半平面判断；跟踪形状变化的 dirty region，并通过 generic loader 回调输出。编译时目标色深必须为 16 位。 | `user_generic_loader_arc_init`、`user_generic_loader_arc_set`、`user_generic_loader_arc_get_dirty_region`、`user_generic_loader_arc_depose`、`user_generic_loader_arc_on_load`、`user_generic_loader_arc_on_frame_start`、`user_generic_loader_arc_on_frame_complete`、`user_generic_loader_arc_show`。 |
-| `3d/user_generic_loader_arc.h` | 定义 `user_generic_loader_arc_param_t`（中心、起始方向、半径、环宽、RGB565 颜色、扫角）和 `user_generic_loader_arc_cfg_t`（输出尺寸、IO、scene、初始弧参数）。 | 扫角 `iSweepAngle` 使用度数，正值顺时针、负值逆时针；未启用 RTE 组件时接口为空操作。 |
 
 ## 3. 模型数据文件和接口
 
@@ -70,7 +63,7 @@
 E:\soft\Tomato1.0\RP2040_Keil-arm2d(1)\02_RP2040_Keil-arm2d_3d\3d\tools\dist\MeshToC.exe
 ```
 
-`dist/` 在 `3d/tools/.gitignore` 中被忽略，因此该 EXE 是本机生成产物，不保证会随 Git 分支提交。仓库中保留了可复现的 Python 源码和构建脚本。
+`dist/` 在 `3d/tools/.gitignore` 中被忽略  仓库中保留了可复现的 Python 源码和构建脚本。
 
 ### 4.2 GUI 基础用法
 
@@ -113,8 +106,59 @@ python generate_face_normals.py rose.c rose_face_normals.inc
 
 ## 5. 配置和性能提示
 
-- `THD_CFG_ENABLE_FILL`、`THD_CFG_ENABLE_WIREFRAME`、`THD_CFG_ENABLE_OCCLUSION`、`THD_CFG_ENABLE_FLAT_SHADING`、`THD_CFG_ENABLE_SMOOTH_SHADING` 和 `THD_CFG_ENABLE_DEPTH_FOG` 控制渲染路径；在编译配置中覆盖它们即可取舍画质和速度。
-- `THD_CFG_Z_BUFFER_PIXEL_COUNT` 默认按 `CANVA_WIDTH * PFB_BLOCK_HEIGHT` 计算，未定义 PFB 高度时按 60 行保守分配；提高 PFB 高度会增加 SRAM 占用。
-- `THD_MAX_PROJECTED_VERTEX_COUNT` 和 `THD_MAX_VISIBLE_FACE_COUNT` 限制每帧缓存容量，必须覆盖实际启用模型的顶点/三角形总量。
-- 开启平滑光照需要顶点法线或运行时累积法线；只使用预生成面法线时使用平面光照更省 RAM/CPU。
-- 当前测试工具缺少 `fast-simplification` 时，除简化测试外的基础转换测试仍可运行；完整测试请先安装 `3d/tools/requirements.txt`。
+下列大部分可调宏在 `3d/user_generic_loader_3d.c` 中使用 `#ifndef` 提供默认值，可以在编译器预定义宏或公共配置头中覆盖。`THD_LIGHT_*` 和 `THD_Z_BUFFER_FAR` 当前使用直接 `#define`，如需从工程配置覆盖，应先把源码定义改为 `#ifndef` 形式，或直接修改该文件。开关宏使用 `0` 表示关闭、`1` 表示开启。
+
+### 5.1 描边、填充和光照模式
+
+| 宏 | 默认值 | 作用和实际行为 |
+| --- | ---: | --- |
+| `THD_CFG_ENABLE_WIREFRAME` | `0` | 描边/线框开关。设为 `1` 后，在三角形表面处理完成后用 `draw_line_fast_rgb565` 绘制三条边，颜色来自模型实例的 `hwWireframeColour`。当前描边函数不读取 Z 缓冲，因此线段自身不做逐像素深度测试。 |
+| `THD_CFG_ENABLE_FILL` | `1` | 实体填充开关。设为 `1` 时光栅化三角形内部；非平滑光照路径使用 `fill_triangle_z_rgb565`，会插值深度并执行 Z 测试。设为 `0` 时通常只保留线框，但还要结合 `THD_CFG_ENABLE_OCCLUSION` 判断。 |
+| `THD_CFG_ENABLE_OCCLUSION` | `1` | 线框遮挡辅助开关。它只出现在条件 `FILL || (WIREFRAME && OCCLUSION)` 中：当填充关闭而线框和遮挡同时开启时，代码仍会先执行表面填充/Z 缓冲，再叠加描边；当填充已开启时，该宏不改变当前填充路径。若需要真正的纯线框，应使用 `FILL=0`、`WIREFRAME=1`、`OCCLUSION=0`。 |
+| `THD_CFG_ENABLE_FLAT_SHADING` | `1` | 平面光照开关。仅在 `SMOOTH_SHADING=0` 时生效；每个三角形用预生成 Q14 面法线（没有时运行时计算）求一次亮度，再整体缩放 RGB565 填充色。设为 `0` 时填充使用模型基础颜色。 |
+| `THD_CFG_ENABLE_SMOOTH_SHADING` | `0` | 平滑光照开关。设为 `1` 后为投影顶点累积相邻面的法线和亮度，并在三角形内部插值亮度；它优先于平面光照。当前 `fill_triangle_smooth_rgb565` 不使用 Z 缓冲，因此多个表面交叠时可能出现遮挡错误，同时会增加顶点缓存和 CPU 开销。 |
+| `THD_CFG_ENABLE_DEPTH_FOG` | `0` | 深度雾开关。按三角形三个顶点的平均深度计算近色权重，把基础色混合到 `THD_DEPTH_FOG_COLOUR`；之后再进入平面或平滑填充路径。 |
+
+常用组合：
+
+| 目标效果 | `FILL` | `WIREFRAME` | `OCCLUSION` | 光照建议 |
+| --- | ---: | ---: | ---: | --- |
+| 默认实体模型 | `1` | `0` | `1` | `FLAT=1`、`SMOOTH=0` |
+| 实体加描边 | `1` | `1` | `1` | 平面光照或关闭光照均可 |
+| 纯线框 | `0` | `1` | `0` | 光照宏对线条无效 |
+| 线框加实体遮挡 | `0` | `1` | `1` | 当前实现仍会写入实体填充色，并非透明隐藏线消除 |
+| 仅基础色填充 | `1` | `0` | `1` | `FLAT=0`、`SMOOTH=0` |
+| 平滑光照填充 | `1` | `0` | `1` | `SMOOTH=1`，注意当前路径不做 Z 测试 |
+
+当 `FILL=0` 且 `WIREFRAME=0` 时不会输出模型几何。`SMOOTH_SHADING=1` 时 `FLAT_SHADING` 会被忽略。
+
+### 5.2 颜色、光照和深度宏
+
+| 宏 | 默认值 | 说明 |
+| --- | ---: | --- |
+| `THD_MODEL_FILL_COLOUR` | `__RGB(0xAA, 0x00, 0x1A)` | 默认模型填充色。当前 `s_tModelInstances` 中玫瑰实例的 `hwColour` 使用该值。 |
+| `THD_MODEL_LINE_COLOUR` | `GLCD_COLOR_YELLOW` | 预留的默认描边色宏；当前活动模型实例没有直接引用它，而是把 `hwWireframeColour` 设为 `THD_MODEL_FILL_COLOUR`。要改变实际描边色，应修改模型实例的 `hwWireframeColour`，或让该字段引用此宏。 |
+| `THD_DEPTH_FOG_COLOUR` | `__RGB(0xD6, 0xD8, 0xE0)` | 远处表面逐渐混合到的 RGB565 雾色。 |
+| `THD_DEPTH_FOG_START_Q16` | `DEPTH` | 开始计算雾化的相机空间深度；小于等于该值时雾化量为 0（传给颜色插值的近色权重为 1）。 |
+| `THD_NEAR_PLANE_Q16` | `1 << 10` | 投影除法使用的最小深度，防止顶点接近/穿过相机时除零或数值爆炸。当前实现是钳位深度，不是几何裁剪近裁面。 |
+| `THD_LIGHT_X_Q16/Y_Q16/Z_Q16` | `0.28/-0.40/0.87` | Q16 光源方向分量。改变它们可以调整模型受光方向。 |
+| `THD_LIGHT_AMBIENT_Q16` | `0.22` | 环境光强度，即最暗处仍保留的基础亮度。 |
+| `THD_LIGHT_DIFFUSE_Q16` | `0.78` | 漫反射强度。当前实现取法线与光线方向点积的绝对值，再乘以该强度并叠加到环境光。 |
+| `THD_CFG_DEPTH_BUFFER_SHIFT` | `4` | 将 Q16 深度右移后压缩到 16 位 Z 缓冲。值越大，可表示的远距离越大但深度精度越低；值过小可能更早饱和到最远深度。 |
+| `THD_Z_BUFFER_FAR` | `0xFFFF` | Z 缓冲的最远值/清屏值；较小的压缩深度代表更靠近观察者。 |
+
+深度雾的运行时强度来自 `ThD_sim_cfg_t.q16DepthFogStrength`，也可调用 `ThD_sim_set_depth_fog_strength()` 动态调整。只有 `THD_CFG_ENABLE_DEPTH_FOG=1` 时该强度才参与绘制。
+
+### 5.3 缓存容量和视差宏
+
+| 宏 | 默认值 | 说明 |
+| --- | ---: | --- |
+| `THD_CFG_Z_BUFFER_PIXEL_COUNT` | `CANVA_WIDTH * PFB_BLOCK_HEIGHT`，无 PFB 高度宏时为 `CANVA_WIDTH * 60` | Z 缓冲的 `uint16_t` 元素数，必须覆盖一次 decoder 回调的 ROI 像素数。增加 PFB 块高度时需同步检查 SRAM 占用。 |
+| `THD_MAX_PROJECTED_VERTEX_COUNT` | 当前启用模型的总顶点数 | 投影顶点缓存容量；小于实际总数时，超出的顶点不会进入本帧。 |
+| `THD_MAX_VISIBLE_FACE_COUNT` | 当前启用模型的总三角形数 | 背面剔除后可记录的最大面数；小于实际需要时，后续可见面会被截断。 |
+| `THD_HOLO_PARALLAX_X_GAIN_Q16` | `-0.09` | IMU pitch 映射到屏幕 X 方向视差的增益。 |
+| `THD_HOLO_PARALLAX_Y_GAIN_Q16` | `0.07` | IMU roll 映射到屏幕 Y 方向视差的增益。 |
+
+开启平滑光照会扩展每个投影顶点的缓存内容并增加法线累积计算；在 RP2040 上优先使用预生成面法线和平面光照可节省 RAM/CPU。当前测试工具缺少 `fast-simplification` 时，除简化测试外的基础转换测试仍可运行；完整测试请先安装 `3d/tools/requirements.txt`。
+
+模型可以从 MakerWorld 等模型网站获取；导入前需确认模型许可，并使用 MeshToC 简化、调整原点和缩放。
