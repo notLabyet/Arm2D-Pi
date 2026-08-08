@@ -34,7 +34,7 @@
 
 /** TX PWM duty in parts per thousand (limits LED current / range). */
 #ifndef DRV_IR_DUTY_PERMILLE
-#   define DRV_IR_DUTY_PERMILLE       333u
+#   define DRV_IR_DUTY_PERMILLE       2u
 #endif
 
 /**
@@ -100,5 +100,6 @@ bool drv_ir_decode_capture(const drv_ir_rx_capture_t *ptCapture, uint8_t *pchDat
 
 uint32_t drv_ir_get_carrier_hz(void);
 uint16_t drv_ir_get_duty_permille(void);
+bool drv_ir_get_rx_level(void);
 
 #endif

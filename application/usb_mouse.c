@@ -76,7 +76,9 @@ static int8_t const s_chSineMotion[] = {
 
 void usb_mouse_init(void)
 {
-    tusb_init();
+    if (!tusb_inited() && !tusb_init()) {
+        return;
+    }
 
     tud_disconnect();
     uint32_t const start = get_system_ms();

@@ -29,12 +29,15 @@
 #include "hardware/structs/vreg_and_chip_reset.h"
 #include "hardware/sync.h"
 
-/* Boot at the SDK default 125 MHz first, then raise VREG before overclocking.
- * This gives marginal boards a cleaner cold-start path than switching to
- * 250 MHz inside clocks_init().
+/* Boot at the SDK default 125 MHz, then overclock after a short settling
+ * delay so the external flash can complete its cold-start sequence.
  */
 #ifndef RP2040_RUNTIME_OVERCLOCK_KHZ
 #   define RP2040_RUNTIME_OVERCLOCK_KHZ      250000u
+#endif
+
+#ifndef RP2040_OVERCLOCK_STARTUP_DELAY_MS
+#   define RP2040_OVERCLOCK_STARTUP_DELAY_MS 500u
 #endif
 
 #ifndef RP2040_OVERCLOCK_PLL_VCO_KHZ
@@ -54,7 +57,7 @@
 #endif
 
 #ifndef RP2040_OVERCLOCK_VREG_SETTLE_MS
-#   define RP2040_OVERCLOCK_VREG_SETTLE_MS   10u
+#   define RP2040_OVERCLOCK_VREG_SETTLE_MS   20u
 #endif
 
 #if RP2040_RUNTIME_OVERCLOCK_KHZ
@@ -71,6 +74,7 @@
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
 
+#if RP2040_RUNTIME_OVERCLOCK_KHZ
 static void rp2040_set_vreg_voltage(uint32_t vsel)
 {
     hw_write_masked(&vreg_and_chip_reset_hw->vreg,
@@ -113,6 +117,7 @@ static void rp2040_set_sys_clock_overclock(void)
                     wSysClockHz,
                     wSysClockHz);
 }
+#endif
 
 void SysTick_Handler(void)
 {
@@ -152,6 +157,7 @@ void platform_init(void)
     extern uint32_t SystemCoreClock;
 
 #if RP2040_RUNTIME_OVERCLOCK_KHZ
+    busy_wait_ms(RP2040_OVERCLOCK_STARTUP_DELAY_MS);
     rp2040_set_vreg_voltage(RP2040_OVERCLOCK_VREG);
     busy_wait_ms(RP2040_OVERCLOCK_VREG_SETTLE_MS);
     rp2040_set_sys_clock_overclock();

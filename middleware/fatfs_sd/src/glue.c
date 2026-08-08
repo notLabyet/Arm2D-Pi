@@ -162,8 +162,7 @@ DRESULT disk_ioctl(BYTE pdrv, /* Physical drive number (0..) */
             return RES_OK;
         }
         case CTRL_SYNC:
-            sd_card_p->sync(sd_card_p);
-            return RES_OK;
+            return sdrc2dresult(sd_card_p->sync(sd_card_p));
         default:
             return RES_PARERR;
     }

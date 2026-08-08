@@ -10,30 +10,54 @@
 #ifndef DRV_QMI8658_H
 #define DRV_QMI8658_H
 #include "hardware/i2c.h"
+#include "bsp_cfg.h"
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
 
 /** 7-bit I2C slave address (AD0 pin strapping; check schematic). */
+#ifndef Device_Address
 #define Device_Address 0x6B
+#endif
+#ifndef QMI8658_ADDRESS_ALT
+#define QMI8658_ADDRESS_ALT 0x6A
+#endif
 /** Default I2C controller instance; change if the sensor is on i2c1. */
+#ifndef I2C_PORT
 #define I2C_PORT i2c0
+#endif
+#ifndef QMI8658_I2C_BAUD_HZ
+#define QMI8658_I2C_BAUD_HZ 40000u
+#endif
 
 char iic0_read_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len);
 char iic0_write_bytes(unsigned char addr,unsigned char reg, unsigned char *value,unsigned short len);
 
-/** Full-scale range used by @ref QMI8658A_ConvertData when reading via @ref QMI8658A_Get_G_DPS (g). */
+#ifndef QMI8658_CTRL2_VALUE
+#define QMI8658_CTRL2_VALUE 0x33u
+#endif
+#ifndef QMI8658_CTRL3_VALUE
+#define QMI8658_CTRL3_VALUE 0x73u
+#endif
+
+/** Full-scale range used by @ref QMI8658A_ConvertData; CTRL2=0x33 selects +/-16 g. */
+#ifndef ACCRANGE
 #define ACCRANGE  16
-/** Full-scale gyro range (dps) paired with @ref ACCRANGE in conversion helpers. */
+#endif
+/** Full-scale gyro range used by @ref QMI8658A_ConvertData; CTRL3=0x73 selects +/-2048 dps. */
+#ifndef GYRRANGE
 #define GYRRANGE  2048
+#endif
 /** Nominal ODR used in comments / tuning (Hz). */
-#define SAMPLERATE 800.0f
+#ifndef SAMPLERATE
+#define SAMPLERATE 1000.0f
+#endif
 /** Still-calibration: number of stationary samples to collect. */
 #define MIN_COLLECTION_COUNT 1000
 /** After sorting each axis, average this many central samples (trimmed mean). */
 #define USED_DATA_COUNT 50
-/** |¶§|a| below this (g) counts as °∞stationary°± for calibration collection. */
+/** |Œî|a| below this (g) counts as ‚Äústationary‚Äù for calibration collection. */
 #define STATIONARY_THRESHOLD 0.001
 
 #ifndef QMI8658_STARTUP_SELF_TEST
@@ -46,6 +70,60 @@ char iic0_write_bytes(unsigned char addr,unsigned char reg, unsigned char *value
 
 #ifndef QMI8658_STARTUP_STILL_CALIBRATION
 #define QMI8658_STARTUP_STILL_CALIBRATION 0
+#endif
+#ifndef QMI8658_TAP_ENABLE
+#define QMI8658_TAP_ENABLE 1
+#endif
+
+#ifndef QMI8658_TAP_POLL_INTERVAL_MS
+#define QMI8658_TAP_POLL_INTERVAL_MS 50u
+#endif
+
+#ifndef QMI8658_TAP_DEBUG_PRINTF
+#define QMI8658_TAP_DEBUG_PRINTF 1
+#endif
+#ifndef QMI8658_TAP_REPORT_SINGLE
+#define QMI8658_TAP_REPORT_SINGLE 0
+#endif
+
+#ifndef QMI8658_TAP_EVENT_COOLDOWN_MS
+#define QMI8658_TAP_EVENT_COOLDOWN_MS 300u
+#endif
+
+#ifndef QMI8658_TAP_DEBUG_INVALID_PRINTF
+#define QMI8658_TAP_DEBUG_INVALID_PRINTF 0
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_PEAK_WINDOW
+#define QMI8658_TAP_DEFAULT_PEAK_WINDOW 16u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_PRIORITY
+#define QMI8658_TAP_DEFAULT_PRIORITY 0u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_TAP_WINDOW
+#define QMI8658_TAP_DEFAULT_TAP_WINDOW 50u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_DTAP_WINDOW
+#define QMI8658_TAP_DEFAULT_DTAP_WINDOW 220u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_ALPHA
+#define QMI8658_TAP_DEFAULT_ALPHA 0x02u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_GAMMA
+#define QMI8658_TAP_DEFAULT_GAMMA 0x08u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_PEAK_MAG_THR
+#define QMI8658_TAP_DEFAULT_PEAK_MAG_THR 0x0180u
+#endif
+
+#ifndef QMI8658_TAP_DEFAULT_UDM_THR
+#define QMI8658_TAP_DEFAULT_UDM_THR 0x00C0u
 #endif
 
 /** Gyro bias terms applied inside @c drv_QMI8658.c after optional still calibration. */
@@ -75,8 +153,8 @@ extern float GyrCompensate[6];
 #define TEMP_L           0x33  /* Temperature LSB (fractional part). */
 #define TEMP_H           0x34  /* Temperature MSB. */
 
-#define A_XYZ            0x35  /* Accel XYZ little-endian (0x35®C0x3A). */
-#define G_XYZ            0x3B  /* Gyro XYZ little-endian (0x3B®C0x40). */
+#define A_XYZ            0x35  /* Accel XYZ little-endian (0x35‚Äì0x3A). */
+#define G_XYZ            0x3B  /* Gyro XYZ little-endian (0x3B‚Äì0x40). */
 
 #define COD_STATUS       0x46  /* Calibration-on-demand status / error code. */
 
@@ -121,12 +199,43 @@ typedef struct {
     char protocolType[10];
     char description[200];
 } CommandInfo;
+typedef enum {
+    QMI8658_TAP_NUM_NONE = 0,
+    QMI8658_TAP_NUM_SINGLE = 1,
+    QMI8658_TAP_NUM_DOUBLE = 2,
+} qmi8658_tap_num_t;
+
+typedef enum {
+    QMI8658_TAP_AXIS_NONE = 0,
+    QMI8658_TAP_AXIS_X = 1,
+    QMI8658_TAP_AXIS_Y = 2,
+    QMI8658_TAP_AXIS_Z = 3,
+} qmi8658_tap_axis_t;
+
+typedef enum {
+    QMI8658_TAP_POLARITY_POSITIVE = 0,
+    QMI8658_TAP_POLARITY_NEGATIVE = 1,
+} qmi8658_tap_polarity_t;
+
+typedef struct {
+    qmi8658_tap_num_t num;
+    qmi8658_tap_axis_t axis;
+    qmi8658_tap_polarity_t polarity;
+    uint8_t raw_status;
+} qmi8658_tap_status_t;
 
 /** Return the static descriptor row for @p cmd (no bounds checking). */
 CommandInfo getCommandInfo(CommandEnum cmd);
 
 /** Reset, verify ID, apply default CTRL* map, optional self-test / COD / still calibration. */
 int QMI8658A_Init(void);
+/** Active 7-bit I2C address selected by the init-time probe. */
+uint8_t QMI8658A_GetActiveAddress(void);
+/** Configure the internal Tap engine with datasheet example parameters and enable it. */
+int QMI8658A_EnableTapDetectionDefault(void);
+
+/** Poll Tap status; @p status is set to NONE when no Tap event is pending. */
+int QMI8658A_ReadTapStatus(qmi8658_tap_status_t *status);
 
 /** Sample path used for bring-up: read, convert, optional logging (mostly commented in .c). */
 void QMI8658A_ReadConvertAndPrint();
@@ -140,7 +249,7 @@ uint8_t calibration_ACC_GYR(float *OutData);
 /** Burst-read raw int16 axis data [AX,AY,AZ,GX,GY,GZ]. */
 int QMI8658A_ReadData(int16_t *DATA);
 
-/** Scale raw counts to g (axes 0®C2) and dps (axes 3®C5) using @p accelRange / @p gyroRange. */
+/** Scale raw counts to g (axes 0‚Äì2) and dps (axes 3‚Äì5) using @p accelRange / @p gyroRange. */
 void QMI8658A_ConvertData(int16_t *InData, float *OutData, int accelRange, int gyroRange);
 
 /** Magnitude of gravity vector from three floats (g). */

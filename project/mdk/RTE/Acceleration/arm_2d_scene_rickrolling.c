@@ -333,7 +333,7 @@ user_scene_rickrolling_t *__arm_2d_scene_rickrolling_init(   arm_2d_scene_player
     /* initialize Zjpgdec loader */
     do {
     #if ARM_2D_DEMO_JPGD_USE_FILE
-        arm_loader_io_file_init(&this.LoaderIO.tFile, "../common/asset/Rickrolling75.jpg");
+        arm_loader_io_file_init(&this.LoaderIO.tFile, "saber2.jpg");
     #else
         extern const uint8_t c_chRickRolling75[104704];
 

@@ -515,8 +515,8 @@ void st7789_init(void)
 
     write_cmd_with_data(0x3A,0x05);   // RGB565
 	write_cmd_with_data(0xC5,0x1A);
-    write_cmd_with_data(0x36,0xc8);   // Memory Access Control 0xc8 //jingxiang 0x48
-                                     // MX, BGR
+    write_cmd_with_data(0x36,0x48);   // Memory Access Control 0xc8 //MIRROR 0x48
+                                     //
 	write_cmd_with_data(0xB2,0x05,0x05,0x00,0x33,0x33); 
     write_cmd_with_data(0xB7,0x05);
 	write_cmd_with_data(0xBB,0x3F);

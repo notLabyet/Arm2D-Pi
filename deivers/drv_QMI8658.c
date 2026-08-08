@@ -13,7 +13,7 @@
  *   @c QMI8658_STARTUP_STILL_CALIBRATION — collect stationary samples into @c GyrCompensate.
  */
 
-#include "drv_qmi8658.h"
+#include "drv_QMI8658.h"
 #include "pico/stdlib.h"
 #ifndef QMI8658_STARTUP_SELF_TEST
 #define QMI8658_STARTUP_SELF_TEST 0
@@ -32,8 +32,10 @@
 #endif
 
 #ifndef QMI8658_CTRL9_TIMEOUT_MS
-#define QMI8658_CTRL9_TIMEOUT_MS 50u
+#define QMI8658_CTRL9_TIMEOUT_MS 100u
 #endif
+
+static uint8_t s_chQMI8658Address = Device_Address;
 
 /**
  * @brief SMBus-style read: write register address with repeated start, then read @p len bytes.
@@ -78,22 +80,50 @@ char iic0_write_bytes(unsigned char addr,unsigned char reg, unsigned char *value
 
 /** One-byte read at @p addr from the default @c Device_Address slave. */
 static unsigned char i2cread(unsigned char addr, unsigned char *Data) {
-    return iic0_read_bytes(Device_Address, addr, Data, 1);
+    return iic0_read_bytes(s_chQMI8658Address, addr, Data, 1);
 }
 
 /** Multi-byte read starting at @p addr. */
 static unsigned char i2creads(uint8_t addr, uint8_t length, uint8_t *Data) {
-    return iic0_read_bytes(Device_Address, addr, Data, length);
+    return iic0_read_bytes(s_chQMI8658Address, addr, Data, length);
 }
 
 /** Single-byte write to @p addr. */
 static unsigned char i2cwrite(uint8_t addr, uint8_t Data) {
-    return iic0_write_bytes(Device_Address, addr, &Data, 1);
+    return iic0_write_bytes(s_chQMI8658Address, addr, &Data, 1);
 }
 
 /** Multi-byte write of @p length bytes from @p Data starting at @p addr. */
 static unsigned char i2cwrites(uint8_t addr, uint8_t length, const uint8_t *Data) {
-    return iic0_write_bytes(Device_Address, addr, (uint8_t *)Data, length);
+    return iic0_write_bytes(s_chQMI8658Address, addr, (uint8_t *)Data, length);
+}
+
+static uint8_t qmi8658_probe_address(void)
+{
+    uint8_t who_am_i = 0;
+    uint8_t const addresses[] = {
+        (uint8_t)Device_Address,
+        (uint8_t)QMI8658_ADDRESS_ALT,
+    };
+
+    for (uint32_t i = 0; i < (sizeof(addresses) / sizeof(addresses[0])); i++) {
+        if ((i > 0u) && (addresses[i] == addresses[0])) {
+            continue;
+        }
+
+        if (iic0_read_bytes(addresses[i], WHO_AM_I, &who_am_i, 1) &&
+            (who_am_i == 0x05u)) {
+            s_chQMI8658Address = addresses[i];
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+uint8_t QMI8658A_GetActiveAddress(void)
+{
+    return s_chQMI8658Address;
 }
 /** Poll @p reg until (@p mask & value) == @p expected or @p timeout_ms elapses. */
 static uint8_t qmi8658_wait_reg_bits(uint8_t reg,
@@ -136,6 +166,92 @@ static uint8_t qmi8658_send_ctrl9_cmd(uint8_t cmd)
     }
 
     return qmi8658_wait_reg_bits(STATUSINT, 0x80u, 0x00u, QMI8658_CTRL9_TIMEOUT_MS);
+}
+
+/** Configure and enable the vendor Tap engine; call while CTRL7.aEN/gEN are both 0. */
+int QMI8658A_EnableTapDetectionDefault(void)
+{
+    uint8_t ctrl8 = 0;
+    uint8_t const first_set[8] = {
+        (uint8_t)QMI8658_TAP_DEFAULT_PEAK_WINDOW,
+        (uint8_t)(QMI8658_TAP_DEFAULT_PRIORITY & 0x07u),
+        (uint8_t)(QMI8658_TAP_DEFAULT_TAP_WINDOW & 0xFFu),
+        (uint8_t)((QMI8658_TAP_DEFAULT_TAP_WINDOW >> 8) & 0xFFu),
+        (uint8_t)(QMI8658_TAP_DEFAULT_DTAP_WINDOW & 0xFFu),
+        (uint8_t)((QMI8658_TAP_DEFAULT_DTAP_WINDOW >> 8) & 0xFFu),
+        0x00u,
+        0x01u,
+    };
+    uint8_t const second_set[8] = {
+        (uint8_t)QMI8658_TAP_DEFAULT_ALPHA,
+        (uint8_t)QMI8658_TAP_DEFAULT_GAMMA,
+        (uint8_t)(QMI8658_TAP_DEFAULT_PEAK_MAG_THR & 0xFFu),
+        (uint8_t)((QMI8658_TAP_DEFAULT_PEAK_MAG_THR >> 8) & 0xFFu),
+        (uint8_t)(QMI8658_TAP_DEFAULT_UDM_THR & 0xFFu),
+        (uint8_t)((QMI8658_TAP_DEFAULT_UDM_THR >> 8) & 0xFFu),
+        0x00u,
+        0x02u,
+    };
+
+    if (!i2cwrites(CAL1_L, sizeof(first_set), first_set)) {
+        return 0;
+    }
+    if (!qmi8658_send_ctrl9_cmd(0x0Cu)) {
+        return 0;
+    }
+
+    if (!i2cwrites(CAL1_L, sizeof(second_set), second_set)) {
+        return 0;
+    }
+    if (!qmi8658_send_ctrl9_cmd(0x0Cu)) {
+        return 0;
+    }
+
+    if (!i2cread(CTRL8, &ctrl8)) {
+        return 0;
+    }
+    ctrl8 |= 0x01u;
+    return i2cwrite(CTRL8, ctrl8);
+}
+
+int QMI8658A_ReadTapStatus(qmi8658_tap_status_t *status)
+{
+    uint8_t status1 = 0;
+    uint8_t tap_status = 0;
+
+    if (status == NULL) {
+        return 0;
+    }
+
+    status->num = QMI8658_TAP_NUM_NONE;
+    status->axis = QMI8658_TAP_AXIS_NONE;
+    status->polarity = QMI8658_TAP_POLARITY_POSITIVE;
+    status->raw_status = 0;
+
+    if (!i2cread(STATUS1, &status1)) {
+        return 0;
+    }
+    if ((status1 & 0x02u) == 0u) {
+        return 1;
+    }
+
+    if (!i2cread(TAP_STATUS, &tap_status)) {
+        return 0;
+    }
+
+    status->raw_status = tap_status;
+    status->num = (qmi8658_tap_num_t)(tap_status & 0x03u);
+    status->axis = (qmi8658_tap_axis_t)((tap_status >> 4) & 0x03u);
+    status->polarity = (tap_status & 0x80u) ?
+                       QMI8658_TAP_POLARITY_NEGATIVE :
+                       QMI8658_TAP_POLARITY_POSITIVE;
+
+    
+    if ((status->axis == QMI8658_TAP_AXIS_NONE) || ((tap_status & 0x03u) == 0x03u)) {
+        status->num = QMI8658_TAP_NUM_NONE;
+    }
+
+    return 1;
 }
 	uint8_t reg_data__[100];
 
@@ -335,7 +451,6 @@ uint8_t Gyr_COD()
     if (data) {
         return 0;
     }
-
     if (!i2cwrite(CTRL7, 0x83)) {
         return 0;
     }
@@ -354,6 +469,10 @@ float GyrCompensate[6];
 int QMI8658A_Init(void)
 {
     uint8_t data = 0;
+
+    if (!qmi8658_probe_address()) {
+        return 0;
+    }
 
     if (!i2cwrite(RESET, 0xB0)) {
         return 0;
@@ -383,11 +502,11 @@ int QMI8658A_Init(void)
     }
 #endif
 
-    if (!i2cwrite(CTRL2, 0x33)) {
+    if (!i2cwrite(CTRL2, QMI8658_CTRL2_VALUE)) {
         return 0;
     }
 
-    if (!i2cwrite(CTRL3, 0x73)) {
+    if (!i2cwrite(CTRL3, QMI8658_CTRL3_VALUE)) {
         return 0;
     }
 
@@ -402,9 +521,18 @@ int QMI8658A_Init(void)
         return 0;
     }
 
+#if QMI8658_TAP_ENABLE
+    if (!QMI8658A_EnableTapDetectionDefault()) {
+        return 0;
+    }
+    if (!i2cwrite(CTRL7, 0x03)) {
+        return 0;
+    }
+#else
     if (!i2cwrite(CTRL7, 0x83)) {
         return 0;
     }
+#endif
     sleep_ms(2);
 
 #if QMI8658_STARTUP_COD
@@ -434,6 +562,10 @@ int QMI8658A_ReadData(int16_t *DATA)
 {
     uint8_t data = 0;
 
+    if (DATA == NULL) {
+        return 0;
+    }
+
     (void)data;
     /* Optional: poll STATUSINT for Avail/Locked before burst read (left commented for speed). */
 
@@ -447,7 +579,7 @@ int QMI8658A_ReadData(int16_t *DATA)
     DATA[2] = (datas[5] << 8) | datas[4]; /* AZ */
     DATA[3] = (datas[7] << 8) | datas[6]; /* GX */
     DATA[4] = (datas[9] << 8) | datas[8]; /* GY */
-    DATA[5] = (datas[11] << 8) | datas[10]; /* GZ */
+    DATA[5] = (datas[11] << 8)| datas[10]; /* GZ */
 
     return 1;
 }
@@ -463,11 +595,16 @@ void QMI8658A_ConvertData(int16_t *InData, float *OutData, int accelRange, int g
 {
     float accelFactor, compensate;
 
+    if ((InData == NULL) || (OutData == NULL)) {
+        return;
+    }
+    
     /* Full-scale counts to g: LSB weight = (2 * FS_g) / 2^16 for 16-bit signed container. */
     switch (accelRange)
     {
         case 2: // ±2g
             accelFactor = 2.0f * 2 / 65536;
+		    
             break;
         case 4: // ±4g
             accelFactor = 4.0f * 2 / 65536;
@@ -482,12 +619,10 @@ void QMI8658A_ConvertData(int16_t *InData, float *OutData, int accelRange, int g
             accelFactor = 0;
             break;
     }
-
     for (int i = 0; i < 3; i++)
     {
         OutData[i] = InData[i] * accelFactor;
     }
-
     float gyroFactor;
 
     /* Same scaling pattern for angular rate in dps. */
@@ -551,7 +686,14 @@ void QMI8658A_Get_G_DPS(float *OutData)
 {
     int16_t data[6];
 
-    QMI8658A_ReadData(data);
+    if (OutData == NULL) {
+        return;
+    }
+
+    if (!QMI8658A_ReadData(data)) {
+        memset(OutData, 0, 6u * sizeof(OutData[0]));
+        return;
+    }
     QMI8658A_ConvertData(data, OutData, ACCRANGE, GYRRANGE);
 }
 

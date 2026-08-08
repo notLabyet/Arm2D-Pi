@@ -114,5 +114,5 @@ Set cache size or ways to zero to force direct `f_lseek()` + `f_read()` reads.
 - `bm8563_task.c/.h`: board task wrapper for the BM8563 RTC.
 - `usb_mouse.c/.h`: USB HID mouse behavior.
 - `usb_msc_sd.c/.h`: USB mass-storage bridge for the SD card.
-- `rp2040_qoi_scene.c/.h`, `rp2040_lmsk_scene.c/.h`: Arm-2D scene loading from
+- `arm_2d_scene_sd_qoi.c/.h`, `arm_2d_scene_sd_lmsk.c/.h`: Arm-2D scene loading from
   SD card resources.

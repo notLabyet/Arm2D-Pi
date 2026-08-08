@@ -1,6 +1,10 @@
 # Pico_Template (v2.3.2)
 An MDK template for RP2040
 
+## 3D Demo
+
+`3d/` 目录包含面向 RP2040 Arm-2D PFB 的 Q16/RGB565 轻量级 3D 引擎、模型数据和 MeshToC 转换工具。中文源码与接口说明见 [3D_ENGINE_GUIDE_CN.md](3D_ENGINE_GUIDE_CN.md)。
+
 - Use RPi official [RP2xxxx_DFP](https://www.keil.arm.com/packs/rp2xxx_dfp-raspberrypi/boards/)
 - Add Flash Programming algorithm.
 
@@ -157,6 +161,5 @@ By default, you can observe the test result in **Debug (printf) View** as shown 
 **NOTE**: **The coremark has to run at least 10 secs to generate a valid result**. Fail to do so,  you can change the macro `ITERATIONS` defined in `core_portme.h` to a bigger value and try again.
 
 ![](./documents/Pictures/core_portme.png) 
-
 
 

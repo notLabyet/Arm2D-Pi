@@ -511,5 +511,3 @@ user_scene_waveform_t *__arm_2d_scene_waveform_init(   arm_2d_scene_player_t *pt
 #endif
 
 #endif
-
-

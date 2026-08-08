@@ -334,7 +334,7 @@ static inline uint16_t swaplow(uint16_t crc) {
 
 // This code assumes that integers are stored little-endian.
 
-__attribute__((optimize("Ofast")))
+SD_CRC_OPTIMIZE_OFAST
 static uint16_t crc16ibm_3740_word(uint16_t crc, void const *mem, size_t len) {
     unsigned char const *data = mem;
     if (data == NULL)

@@ -63,7 +63,7 @@ extern "C" {
 
 
 #ifndef ARM_2D_DEMO_JPGD_USE_FILE
-#   define ARM_2D_DEMO_JPGD_USE_FILE    0
+#   define ARM_2D_DEMO_JPGD_USE_FILE    1
 #endif
 
 #ifndef ARM_2D_DEMO_USE_ZJPGD

@@ -34,6 +34,12 @@ specific language governing permissions and limitations under the License.
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#   define SD_CRC_OPTIMIZE_OFAST    __attribute__((optimize("Ofast")))
+#else
+#   define SD_CRC_OPTIMIZE_OFAST
+#endif
+
 /**
  * @brief Calculate the CRC7 checksum for the specified data block.
  * 
@@ -44,7 +50,7 @@ specific language governing permissions and limitations under the License.
  * @param length The length of the data block in bytes.
  * @return The calculated checksum.
  */
-__attribute__((optimize("Ofast")))
+SD_CRC_OPTIMIZE_OFAST
 static inline char crc7(uint8_t const *data, int const length) {
 extern const char m_Crc7Table[];    
 	char crc = 0;

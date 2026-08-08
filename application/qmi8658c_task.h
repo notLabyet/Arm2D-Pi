@@ -1,6 +1,8 @@
 #ifndef __QMI8658C_H__
 #define __QMI8658C_H__
 
+#include <stdint.h>
+
 #include "drv_QMI8658.h"
 
 /**
@@ -11,6 +13,8 @@
  *
  * @return 1 on success, 0 on failure.
  */
-extern uint8_t qmi8658c_init();
+extern uint8_t qmi8658c_init(void);
+/** Poll optional QMI8658 runtime events such as Tap detection. */
+extern void qmi8658c_task(uint32_t now_ms);
 
 #endif

@@ -1,0 +1,4 @@
+build/
+dist/
+MeshToC.spec
+__pycache__/

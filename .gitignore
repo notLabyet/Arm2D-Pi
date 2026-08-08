@@ -52,8 +52,13 @@ dkms.conf
 *.dep
 build_usb_check*/
 project/mdk/template.uvguix.*
+project/mdk/*.uvoptx
 project/mdk/Objects
+project/mdk/.mklink/
+project/mdk/*_build.log
+project/mdk/codex-*.log
 *.scvd
+!project/mdk/EventRecorderStub.scvd
 *.iex
 project/mdk/JLinkLog.txt
 project/mdk/template.uf2
@@ -71,3 +76,8 @@ project/mdk/RTE/Acceleration/img2c.py
 project/mdk/RTE/Acceleration/arm_2d.c
 project/mdk/RTE/Utilities/core_portme.c
 documents/Pictures/Thumbs.db
+_compile_check/
+
+# Large generated image assets are kept outside the repository.
+pic/girl.c
+pic/saber2.c

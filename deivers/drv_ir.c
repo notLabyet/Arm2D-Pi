@@ -419,3 +419,8 @@ uint16_t drv_ir_get_duty_permille(void)
 {
     return s_hwDutyPermille;
 }
+
+bool drv_ir_get_rx_level(void)
+{
+    return gpio_get(DRV_IR_RX_PIN) ? true : false;
+}

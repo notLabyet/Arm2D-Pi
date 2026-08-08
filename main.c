@@ -16,21 +16,15 @@
 ****************************************************************************/
 /*============================ INCLUDES ======================================*/
 #include "platform/platform.h"
-
+#include "arm_2d_scene_benchmark_generic.h"
+#include "arm_2d_scene_infinite_corridor.h"
 #include <stdio.h>
-
 #include "arm_2d.h"
 #include "arm_2d_helper.h"
 #include "arm_2d_disp_adapters.h"
 #include "arm_2d_scenes.h"
-#include "arm_2d_scene_radars.h"
-
-#ifdef RTE_Acceleration_Arm_2D_Extra_Benchmark
-#   include "arm_2d_benchmark.h"
-#endif
-
-
 #include "qmi8658c_task.h"
+#include "qmi8658_motion.h"
 #include "bm8563_task.h"
 #include "drv_paj7620.h"
 #include "hardware/pwm.h"
@@ -38,8 +32,7 @@
 #include "usb_msc_sd.h"
 #include "hardware/clocks.h"
 #include "rp2040_sdcard.h"
-#include "rp2040_qoi_scene.h"
-#include "rp2040_lmsk_scene.h"
+#include "fal.h"
 #include "ir_task.h"
 #include "light_task.h"
 #include "buzzer_task.h"
@@ -53,15 +46,19 @@
 #endif
 
 #ifndef RP2040_LIGHT_TASK_ENABLE
-#   define RP2040_LIGHT_TASK_ENABLE 1
+#   define RP2040_LIGHT_TASK_ENABLE 0
 #endif
 
 #ifndef RP2040_IMU_SAMPLE_ENABLE
-#   define RP2040_IMU_SAMPLE_ENABLE 0
+#   define RP2040_IMU_SAMPLE_ENABLE 1
 #endif
 
 #ifndef RP2040_BUZZER_TASK_ENABLE
-#   define RP2040_BUZZER_TASK_ENABLE 1
+#   define RP2040_BUZZER_TASK_ENABLE 0
+#endif
+
+#ifndef RP2040_USB_MSC_SD_ENABLE
+#   define RP2040_USB_MSC_SD_ENABLE 0
 #endif
 /*============================ MACROFIED FUNCTIONS ===========================*/
 /*============================ TYPES =========================================*/
@@ -69,113 +66,6 @@
 /*============================ LOCAL VARIABLES ===============================*/
 /*============================ PROTOTYPES ====================================*/
 /*============================ IMPLEMENTATION ================================*/
-
-void scene_radars_loader(void)
-{
-    arm_2d_scene_radars_init(&DISP0_ADAPTER);
-}
-
-
-
-
-
-typedef struct demo_scene_t {
-    int32_t nLastInMS;
-    void (*fnLoader)(void);
-} demo_scene_t;
-
-static demo_scene_t const c_SceneLoaders[] = {
-
-#if 0
-    {
-        20000,
-        scene_radars_loader,
-    },
-    {
-        20000,
-        scene_blink_loader,
-    },
-    {
-        20000,
-        scene_space_badge_loader,
-    },
-#else
-    {
-        .fnLoader = 
-        //rp2040_qoi_scene_loader,
-        //rp2040_lmsk_scene_loader,
-        //scene_large_lmsk_loader,
-        //scene_qoi_animation_loader,
-        //scene_lmsk_loader,
-        //scene_radars_loader,
-        //scene_qoi_loader
-        //scene_zhrgb565_loader,
-        //scene_bubble_charging_loader,
-        //scene_watch_face_01_loader,
-        //scene_waveform_loader,
-        //scene_mask_generator_loader,
-        //scene_ring_indicator_loader,
-        //scene_meter_loader,
-        //scene_histogram_loader,
-        //scene_blink_loader,
-        //scene_histogram_loader,
-        //scene_flight_attitude_instrument_loader,
-        scene_radars_loader,
-        //scene_music_player_loader,
-        //scene_meter_loader,
-        //scene_rickrolling_loader,
-        //scene_space_badge_loader,
-        //scene_qrcode_loader,
-        //scene_mono_clock_loader
-    },
-#endif
-
-};
-
-static
-struct {
-    int8_t chIndex;
-    bool bIsTimeout;
-    int32_t nDelay;
-    int64_t lTimeStamp;
-    
-} s_tDemoCTRL = {
-    .chIndex = -1,
-    .bIsTimeout = true,
-};
-
-/* load scene one by one */
-void before_scene_switching_handler(void *pTarget,
-                                    arm_2d_scene_player_t *ptPlayer,
-                                    arm_2d_scene_t *ptScene)
-{
-
-    switch (arm_2d_scene_player_get_switching_status(&DISP0_ADAPTER)) {
-        case ARM_2D_SCENE_SWITCH_STATUS_MANUAL_CANCEL:
-            s_tDemoCTRL.chIndex--;
-            break;
-        default:
-            s_tDemoCTRL.chIndex++;
-            break;
-    }
-
-    if (s_tDemoCTRL.chIndex >= dimof(c_SceneLoaders)) {
-        s_tDemoCTRL.chIndex = 0;
-    } else if (s_tDemoCTRL.chIndex < 0) {
-        s_tDemoCTRL.chIndex += dimof(c_SceneLoaders);
-    }
-
-    /* call loader */
-    arm_with(const demo_scene_t, &c_SceneLoaders[s_tDemoCTRL.chIndex]) {
-        if (_->nLastInMS > 0) {
-            s_tDemoCTRL.bIsTimeout = false;
-            s_tDemoCTRL.lTimeStamp = 0;
-            s_tDemoCTRL.nDelay = _->nLastInMS;
-        }
-        _->fnLoader();
-    }
-}
-
 
 static void system_init(void)
 {
@@ -197,49 +87,36 @@ static void usb_mouse_startup_poll(uint32_t delay_ms)
 }
 
 char qmi8658_init_ret;
-int16_t DATA_GY_ACC[6];
 #define POWER_KEEP_PIN 2
 #define POWER_UP_CHECK_PIN 9
 extern fsm_rt_t power_task();
 int main(void) 
 {
-    uint32_t wLastIMUSampleMS = 0;
-	
     system_init();
+    (void)fal_init();
+	sleep_ms(500);
 #if RP2040_SDCARD_RUN_PERF_TEST
     printf("\r\nRP2040 SDIO/FatFs performance test start\r\n");
     (void)rp2040_sdcard_default_perf_test();
 #endif
 
+#if RP2040_USB_MSC_SD_ENABLE
     (void)usb_msc_sd_init();
+#endif
 
-    usb_mouse_init();
-    usb_mouse_startup_poll(500u);
+//	usb_mouse_init();
+//	usb_mouse_startup_poll(500u);
 
     __cycleof__("printf") {
         printf("Hello RP2040!\r\n");
 		printf("clk_sys = %d\r\n",clock_get_hz(clk_sys));		
 		printf("clk_usb = %d\r\n",clock_get_hz(clk_usb));
     }
-
-#if defined( __PERF_COUNTER_COREMARK__ ) && __PERF_COUNTER_COREMARK__
-    printf("\r\nRun Coremark 1.0...\r\n");
-    coremark_main();
-#endif
-#ifdef RTE_Acceleration_Arm_2D_Extra_Benchmark
-    arm_2d_run_benchmark();
-#else
-    arm_2d_scene_player_register_before_switching_event_handler(
-            &DISP0_ADAPTER,
-            before_scene_switching_handler);
-            
-    arm_2d_scene_player_switch_to_next_scene(&DISP0_ADAPTER);
-#endif
-	
-	
 	qmi8658_init_ret = qmi8658c_init();
+    if (qmi8658_init_ret) {
+        qmi8658_motion_init();
+    }
 	sleep_ms(10);
-
 	bm8563_hander_init();
 #if RP2040_IR_TASK_ENABLE
     ir_task_init();
@@ -249,19 +126,19 @@ int main(void)
 #endif
 #if RP2040_BUZZER_TASK_ENABLE
     buzzer_task_init();
+
 #endif
+    arm_2d_scene0_init(&DISP0_ADAPTER);
 
     while (true) {
         uint32_t const wNow = get_system_ms();
-
-		if(RP2040_IMU_SAMPLE_ENABLE && qmi8658_init_ret && ((uint32_t)(wNow - wLastIMUSampleMS) >= 10)){
-            wLastIMUSampleMS = wNow;
-			QMI8658A_ReadData(DATA_GY_ACC);
-//            usb_mouse_update_imu_raw(DATA_GY_ACC);
-		}
+#if RP2040_IMU_SAMPLE_ENABLE
+        if (qmi8658_init_ret) {
+            (void)qmi8658_motion_poll(wNow);
+        }
+#endif
 //		bm8563_read(&tbm8563, &bm_time);
 		power_task();
-//        usb_mouse_task();
 #if RP2040_IR_TASK_ENABLE
         ir_task(IR_TASK_SEND_INTERVAL_MS);
 #endif
@@ -271,19 +148,11 @@ int main(void)
 #if RP2040_BUZZER_TASK_ENABLE
         buzzer_task(BUZZER_TASK_REPEAT_PAUSE_MS);
 #endif
-        disp_adapter0_task(60);
-
-        if (!s_tDemoCTRL.bIsTimeout) {
-
-            if (arm_2d_helper_is_time_out(s_tDemoCTRL.nDelay, &s_tDemoCTRL.lTimeStamp)) {
-                s_tDemoCTRL.bIsTimeout = true;
-
-                arm_2d_scene_player_switch_to_next_scene(&DISP0_ADAPTER);
-            }
-        }
-
+#if RP2040_USB_MSC_SD_ENABLE
+	    usb_mouse_task();
+#endif
+        disp_adapter0_task();
     }
-    //return 0;
 }
 fsm_rt_t power_task(void)
 {
@@ -309,9 +178,6 @@ fsm_rt_t power_task(void)
             gpio_set_function(POWER_KEEP_PIN, GPIO_FUNC_SIO);
             gpio_set_dir(POWER_KEEP_PIN, GPIO_OUT);
 
-            /*
-             * 上电后立即拉高保持电源，
-             * 防止松开按键后系统掉�?             */
             gpio_put(POWER_KEEP_PIN, 1);
 
             gpio_init(POWER_UP_CHECK_PIN);
@@ -326,9 +192,6 @@ fsm_rt_t power_task(void)
 
         case POWER_SOURCE_CHECK:
         {
-            /*
-             * 按键低电平：说明是手动按键触发上�?             * 按键高电平：说明不是按键上电，关闭保持电源，等待按键
-             */
             if (gpio_get(POWER_UP_CHECK_PIN) == 0) {
                 delay = now;
                 chState = RELEASE_CHECK;
@@ -342,9 +205,6 @@ fsm_rt_t power_task(void)
 
         case WAIT_POWER_UP_KEY:
         {
-            /*
-             * 等待按键按下，低电平持续20ms认为有效
-             */
             if (gpio_get(POWER_UP_CHECK_PIN) == 0) {
                 if ((uint32_t)(now - delay) >= 20) {
                     gpio_put(POWER_KEEP_PIN, 1);

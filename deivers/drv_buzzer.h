@@ -104,6 +104,7 @@ void drv_buzzer_pcm_stop(void);
 bool drv_buzzer_pcm_is_active(void);
 
 /** Current sample index during PCM (volatile in implementation; for diagnostics/UI). */
+void irq_clear_pending(uint num);
 uint32_t drv_buzzer_pcm_get_index(void);
 
 #endif
