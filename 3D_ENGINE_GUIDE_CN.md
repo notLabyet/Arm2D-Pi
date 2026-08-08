@@ -21,7 +21,7 @@
 
 ## 2. 3D 引擎源码和接口
 
-底层原理可以参考 https://www.bilibili.com/video/BV13Fjn6QEyn/?spm_id_from=333.337.search-card.all.click  这也是demo第一个版本的来源
+底层原理可以参考 https://www.bilibili.com/video/BV13Fjn6QEyn/?spm_id_from=333.337.search-card.all.click  这也是demo第一个古法版本的来源
 
 ### 2.1 核心渲染器
 
@@ -31,6 +31,7 @@
 | `3d/user_generic_loader_3d.h` | 3D loader 的公共类型和声明；`ThD_sim_t` 继承 `arm_generic_loader_t`，并保存姿态、时钟、视差和交互矩阵。未启用对应 RTE 组件时，接口宏展开为 `ARM_2D_ERR_NOT_AVAILABLE`/空操作。 | 见上行接口；应用层典型顺序为 `init -> on_load -> 每帧 on_frame_start/show/on_frame_complete -> depose`。 |
 | `3d/ThD_test.c` | Q16/Q31 数学和姿态处理：旋转矩阵、近似平方根/反正切、透视投影、Q16 屏幕映射；包含基于加速度计/陀螺仪的简化姿态滤波、校准、偏航回中.文件末尾还提供 8 顶点测试立方体。 | `build_rot_matrix`、`sqrt_q16`、`apply_rot`、`projection`、`to_screen`、`imu_update_euler`、`imu_holo_update_raw`、`imu_holo_step`、`imu_holo_angle_to_q31`、`mahony_update`、`quat_to_matrix`。 |
 | `3d/ThD_test.h` | 定义 `Thd_point_t`（三个 Q16 坐标）、`point_t`、`tri_t`（三个 `uint16_t` 顶点索引）、`mat3_t`、`quat_t` 和 `attitude_t` 等基础类型。`Q16(x)` 将浮点常量转为 16.16 定点，`Q31(x)` 将一圈比例转为 Q31。 | 数学函数声明、`cube_vertices/cube_tris` 测试数据；可通过 `CANVA_WIDTH`、`CANVA_HEIGHT`、`DEPTH` 覆盖默认 240x240 画布和投影深度。 |
+
 | `3d/thd_clock_hands.c` | 将毫秒时间转换为 Q31 的时针/分针旋转角，供模型实例绑定 `tClockHand` 后做 Z 轴动画；处理计时器回绕。 | `thd_clock_hands_init`、`thd_clock_hands_update`、`thd_clock_hands_get_angle`。 |
 | `3d/thd_clock_hands.h` | 时钟动画状态和句柄枚举。`THD_CLOCK_HANDS_MINUTE_PERIOD_MS` 默认 60 秒，小时周期为 12 分钟周期。 | `thd_clock_hand_t`（`NONE/HOUR/MINUTE`）、`thd_clock_hands_t`。 |
 
@@ -39,6 +40,8 @@
 ## 3. 模型数据文件和接口
 
 模型文件通常由 `mesh_to_c` 生成，顶点使用 `Q16(...)` 存储，三角形索引使用 `tri_t`，法线使用 Q14 的 `int16_t[3]`。下表列出当前 `3d` 目录中的每个模型/资源 C 文件：
+
+
 
 | 文件 | 数据内容和使用方式 |
 | --- | --- |
@@ -64,6 +67,7 @@ E:\soft\Tomato1.0\RP2040_Keil-arm2d(1)\02_RP2040_Keil-arm2d_3d\3d\tools\dist\Mes
 ```
 
 `dist/` 在 `3d/tools/.gitignore` 中被忽略  仓库中保留了可复现的 Python 源码和构建脚本。
+MeshToC 支持手动调整模型的初始零点，以实现一些简单的旋转和组合体（比如旋翼旋转的直升机，3D表盘）。
 
 ### 4.2 GUI 基础用法
 
