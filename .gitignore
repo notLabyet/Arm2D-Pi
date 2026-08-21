@@ -81,3 +81,11 @@ _compile_check/
 # Large generated image assets are kept outside the repository.
 pic/girl.c
 pic/saber2.c
+
+# Keil MDK generated files shared by demo projects.
+**/Objects/
+**/Listings/
+**/DebugConfig/
+*.uvoptx
+*uvguix.*
+*@*

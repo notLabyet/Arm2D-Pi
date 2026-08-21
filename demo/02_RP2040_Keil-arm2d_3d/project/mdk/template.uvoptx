@@ -130,7 +130,7 @@
         <SetRegEntry>
           <Number>0</Number>
           <Key>CMSIS_AGDI</Key>
-          <Name>-X"CMSIS-DAP" -U3630343832074727 -O198 -S8 -C0 -P00000000 -N00("ARM CoreSight SW-DP") -D00(0BC12477) -L00(0) -TO65554 -TC10000000 -TT10000000 -TP20 -TDS8007 -TDT0 -TDC1F -TIEFFFFFFFF -TIP8 -FO11 -FD20040000 -FC2000 -FN1 -FF0Raspberry_Pi_Pico.FLM -FS010000000 -FL02000000 -FP0($$Device:RP2040$CMSIS\Flash\Raspberry_Pi_Pico.FLM)</Name>
+          <Name>-X"MicroKeenV3 CMSIS-DAP" -U304162F35574AABE -O198 -S8 -C0 -P00000000 -N00("Unknown device") -D00(10212927) -L00(0) -TO65554 -TC10000000 -TT10000000 -TP20 -TDS8007 -TDT0 -TDC1F -TIEFFFFFFFF -TIP8 -FO15 -FD20040000 -FC2000 -FN1 -FF0Raspberry_Pi_Pico.FLM -FS010000000 -FL02000000 -FP0($$Device:RP2040$CMSIS\Flash\Raspberry_Pi_Pico.FLM)</Name>
         </SetRegEntry>
         <SetRegEntry>
           <Number>0</Number>
@@ -251,8 +251,8 @@
         </Mm>
       </MemoryWindow4>
       <ScvdPack>
-        <Filename>D:\Tools\mdk5\ARM\CMSIS-View\1.2.0\EventRecorder\EventRecorder.scvd</Filename>
-        <Type>ARM.CMSIS-View.1.2.0</Type>
+        <Filename>D:\Arm\Packs\ARM\CMSIS-View\1.2.0\EventRecorder\EventRecorder.scvd</Filename>
+        <Type>ARM::CMSIS-View@1.2.0</Type>
         <SubType>1</SubType>
       </ScvdPack>
       <ToolboxButtons>

@@ -97,6 +97,16 @@ static uint32_t __user_generic_loader_arc_sqrt_u64(uint64_t qwValue)
     return (uint32_t)qwResult;
 }
 
+static int16_t __user_generic_loader_arc_get_sweep_angle_q10(
+                                    const user_generic_loader_arc_param_t *ptArc)
+{
+    if (0 != ptArc->iSweepAngleQ10) {
+        return ptArc->iSweepAngleQ10;
+    }
+
+    return (int16_t)(ptArc->iSweepAngle * 10);
+}
+
 static uint8_t __user_generic_loader_arc_half_plane_opacity(int32_t iCrossQ14)
 {
     if (iCrossQ14 >= 0) {
@@ -167,6 +177,50 @@ static uint8_t __user_generic_loader_arc_radius_opacity(
         uint8_t chInnerOpacity =
             (uint8_t)((wDelta * 255u) / wBorderWidth);
         chOpacity = MIN(chOpacity, chInnerOpacity);
+    }
+
+    return chOpacity;
+}
+
+static uint8_t __user_generic_loader_arc_round_cap_opacity(
+                                    const user_generic_loader_arc_t *ptThis,
+                                    int32_t iX,
+                                    int32_t iY)
+{
+    if (!this.tCFG.tArc.bRoundCaps || this.Runtime.bFullCircle) {
+        return 0u;
+    }
+
+    int32_t iCapRadius = this.tCFG.tArc.hwRingWidth >> 1;
+    int32_t iCapCentreRadius = (int32_t)this.tCFG.tArc.hwRadius - iCapRadius;
+    int32_t iCapBorderRadius = iCapRadius + 1;
+    uint32_t wCapBorderRadiusSquared = (uint32_t)iCapBorderRadius * iCapBorderRadius;
+    uint32_t wCapRadiusSquared = (uint32_t)iCapRadius * iCapRadius;
+    uint8_t chOpacity = 0u;
+    int16_t iCapDirection[2][2] = {
+        {this.Runtime.iStartXQ14, this.Runtime.iStartYQ14},
+        {this.Runtime.iEndXQ14, this.Runtime.iEndYQ14},
+    };
+
+    for (uint_fast8_t n = 0; n < dimof(iCapDirection); n++) {
+        int32_t iCapX = ((int32_t)iCapDirection[n][0] * iCapCentreRadius) / 16384;
+        int32_t iCapY = ((int32_t)iCapDirection[n][1] * iCapCentreRadius) / 16384;
+        int32_t iDX = iX - iCapX;
+        int32_t iDY = iY - iCapY;
+        uint32_t wDistanceSquared = (uint32_t)(iDX * iDX + iDY * iDY);
+
+        if (wDistanceSquared >= wCapBorderRadiusSquared) {
+            continue;
+        }
+        if (wDistanceSquared <= wCapRadiusSquared) {
+            chOpacity = 0xFFu;
+            continue;
+        }
+
+        uint32_t wBorderWidth = wCapBorderRadiusSquared - wCapRadiusSquared;
+        uint8_t chCapOpacity = (uint8_t)(255u -
+            ((wDistanceSquared - wCapRadiusSquared) * 255u) / wBorderWidth);
+        chOpacity = MAX(chOpacity, chCapOpacity);
     }
 
     return chOpacity;
@@ -307,7 +361,8 @@ static bool __user_generic_loader_arc_same_shape(
         && (ptOldArc->tStartPoint.iY == ptNewArc->tStartPoint.iY)
         && (ptOldArc->hwRadius == ptNewArc->hwRadius)
         && (ptOldArc->hwRingWidth == ptNewArc->hwRingWidth)
-        && (ptOldArc->hwColour == ptNewArc->hwColour);
+        && (ptOldArc->hwColour == ptNewArc->hwColour)
+        && (ptOldArc->bRoundCaps == ptNewArc->bRoundCaps);
 }
 
 static void __user_generic_loader_arc_clip_dirty_region(
@@ -350,35 +405,41 @@ static void __user_generic_loader_arc_update_dirty_region(
 {
     bool bInitialized = false;
     int32_t iAngleDelta = bHadOldParameters
-                        ? (int32_t)this.tCFG.tArc.iSweepAngle
-                            - ptOldArc->iSweepAngle
+                        ? (int32_t)__user_generic_loader_arc_get_sweep_angle_q10(
+                                                    &this.tCFG.tArc)
+                            - __user_generic_loader_arc_get_sweep_angle_q10(ptOldArc)
                         : 0;
     uint32_t wAngleMagnitude = (uint32_t)((iAngleDelta < 0)
                                        ? -iAngleDelta
                                        : iAngleDelta);
+    int16_t iOldSweepAngleQ10 =
+        __user_generic_loader_arc_get_sweep_angle_q10(ptOldArc);
+    int16_t iNewSweepAngleQ10 =
+        __user_generic_loader_arc_get_sweep_angle_q10(&this.tCFG.tArc);
     uint16_t hwOldSweepMagnitude = bHadOldParameters
-        ? (uint16_t)((ptOldArc->iSweepAngle < 0)
-                   ? -ptOldArc->iSweepAngle
-                   : ptOldArc->iSweepAngle)
+        ? (uint16_t)((iOldSweepAngleQ10 < 0)
+                   ? -iOldSweepAngleQ10
+                   : iOldSweepAngleQ10)
         : 0u;
     uint16_t hwNewSweepMagnitude = (uint16_t)(
-        (this.tCFG.tArc.iSweepAngle < 0)
-        ? -this.tCFG.tArc.iSweepAngle
-        : this.tCFG.tArc.iSweepAngle);
+        (iNewSweepAngleQ10 < 0)
+        ? -iNewSweepAngleQ10
+        : iNewSweepAngleQ10);
 
     memset(&this.Runtime.tDirtyRegion, 0,
            sizeof(this.Runtime.tDirtyRegion));
 
     bool bCanTrackTip = bHadOldParameters
                      && !this.Runtime.bForceFullDirtyRegion
+                     && !this.tCFG.tArc.bRoundCaps
                      && __user_generic_loader_arc_same_shape(
                                                     ptOldArc,
                                                     &this.tCFG.tArc)
                      && (hwOldSweepMagnitude > 0u)
-                     && (hwOldSweepMagnitude < 360u)
+                     && (hwOldSweepMagnitude < 3600u)
                      && (hwNewSweepMagnitude > 0u)
-                     && (hwNewSweepMagnitude < 360u)
-                     && (wAngleMagnitude < 360u);
+                     && (hwNewSweepMagnitude < 3600u)
+                     && (wAngleMagnitude < 3600u);
 
     if (bCanTrackTip) {
         if (0u == wAngleMagnitude) {
@@ -409,7 +470,7 @@ static void __user_generic_loader_arc_update_dirty_region(
             {-16384,     0},
             {     0,-16384},
         };
-        bool bWideTransition = (wAngleMagnitude > 180u);
+        bool bWideTransition = (wAngleMagnitude > 1800u);
         for (uint_fast8_t n = 0; n < dimof(c_iCardinalDirectionQ14); n++) {
             int16_t iXQ14 = c_iCardinalDirectionQ14[n][0];
             int16_t iYQ14 = c_iCardinalDirectionQ14[n][1];
@@ -449,8 +510,8 @@ arm_2d_err_t user_generic_loader_arc_set(
      || (ptArc->hwRadius > INT16_MAX)
      || (0 == ptArc->hwRingWidth)
      || (ptArc->hwRingWidth > ptArc->hwRadius)
-     || (ptArc->iSweepAngle < -360)
-     || (ptArc->iSweepAngle > 360)) {
+    || (__user_generic_loader_arc_get_sweep_angle_q10(ptArc) < -3600)
+    || (__user_generic_loader_arc_get_sweep_angle_q10(ptArc) > 3600)) {
         return ARM_2D_ERR_INVALID_PARAM;
     }
 
@@ -470,11 +531,13 @@ arm_2d_err_t user_generic_loader_arc_set(
     uint32_t wStartLength =
         __user_generic_loader_arc_sqrt_u64(qwStartLengthSquared);
 
+    int16_t iSweepAngleQ10 =
+        __user_generic_loader_arc_get_sweep_angle_q10(ptArc);
     uint16_t hwSweepMagnitude = (uint16_t)(
-        (ptArc->iSweepAngle < 0)
-        ? -ptArc->iSweepAngle
-        : ptArc->iSweepAngle);
-    bool bFullCircle = (360u == hwSweepMagnitude);
+        (iSweepAngleQ10 < 0)
+        ? -iSweepAngleQ10
+        : iSweepAngleQ10);
+    bool bFullCircle = (3600u == hwSweepMagnitude);
 
     if (0 == wStartLength) {
         if (!bFullCircle && (0 != hwSweepMagnitude)) {
@@ -496,11 +559,11 @@ arm_2d_err_t user_generic_loader_arc_set(
     this.Runtime.iTipYQ14 = this.Runtime.iStartYQ14;
     this.Runtime.bVisible = (0 != hwSweepMagnitude);
     this.Runtime.bFullCircle = bFullCircle;
-    this.Runtime.bWideArc = (hwSweepMagnitude > 180u);
+    this.Runtime.bWideArc = (hwSweepMagnitude > 1800u);
 
     if (!bFullCircle && (0 != hwSweepMagnitude)) {
         q31_t q31SweepAngle = (q31_t)(
-            ((int64_t)ptArc->iSweepAngle * 2147483648LL) / 360LL);
+            ((int64_t)iSweepAngleQ10 * 2147483648LL) / 3600LL);
         int32_t iCosQ15 = arm_cos_q31(q31SweepAngle) >> 16;
         int32_t iSinQ15 = arm_sin_q31(q31SweepAngle) >> 16;
         int16_t iEndXQ14 = (int16_t)(
@@ -512,7 +575,7 @@ arm_2d_err_t user_generic_loader_arc_set(
         this.Runtime.iTipXQ14 = iEndXQ14;
         this.Runtime.iTipYQ14 = iEndYQ14;
 
-        if (ptArc->iSweepAngle < 0) {
+        if (iSweepAngleQ10 < 0) {
             this.Runtime.iEndXQ14 = this.Runtime.iStartXQ14;
             this.Runtime.iEndYQ14 = this.Runtime.iStartYQ14;
             this.Runtime.iStartXQ14 = iEndXQ14;
@@ -752,10 +815,13 @@ arm_2d_err_t __user_generic_loader_arc_draw(
             uint8_t chDirectionOpacity =
                 __user_generic_loader_arc_direction_opacity(
                                                     ptThis, iDX, iDY);
-            if (0u == chDirectionOpacity) {
+            uint8_t chCapOpacity =
+                __user_generic_loader_arc_round_cap_opacity(ptThis, iDX, iDY);
+            uint8_t chArcOpacity = MIN(chOpacity, chDirectionOpacity);
+            if ((0u == chArcOpacity) && (0u == chCapOpacity)) {
                 continue;
             }
-            *pchPixel = MIN(chOpacity, chDirectionOpacity);
+            *pchPixel = MAX(chArcOpacity, chCapOpacity);
         }
     }
 
