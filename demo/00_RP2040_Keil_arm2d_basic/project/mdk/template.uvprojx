@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USING_RP2040_PWM,PICO_FLASH_SIZE_BYTES=33554432,PICO_RP2040_USB_DEVICE_UFRAME_FIX=0,PICO_RP2040_USB_DEVICE_ENUMERATION_FIX=1,PICO_TIME_DEFAULT_ALARM_POOL_DISABLED=1,RP2040_STATIC_USB_IRQ_HANDLER=1</Define>
               <Undefine></Undefine>
-              <IncludePath>.;..\..\deivers;..\..\application;..\..\platform</IncludePath>
+              <IncludePath>.;..\..\deivers;..\..\application;..\..\platform;..\..\service;..\..\service\ui</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -418,6 +418,58 @@
         </Group>
         <Group>
           <GroupName>drivers</GroupName>
+          <Files>
+            <File>
+              <FileName>drv_battery.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\deivers\drv_battery.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\deivers\drv_buzzer.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\deivers\drv_key.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>service</GroupName>
+          <Files>
+            <File>
+              <FileName>service_sensor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\service\service_sensor.c</FilePath>
+            </File>
+            <File>
+              <FileName>service.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\service\service.c</FilePath>
+            </File>
+            <File>
+              <FileName>service_buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\service\service_buzzer.c</FilePath>
+            </File>
+            <File>
+              <FileName>service_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\service\service_key.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>ui</GroupName>
+          <Files>
+            <File>
+              <FileName>arm_2d_scene_show_data.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\service\ui\arm_2d_scene_show_data.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>::Acceleration</GroupName>
@@ -573,20 +625,16 @@
         <targetInfos/>
       </file>
       <file attr="config" category="utility" name="tools\__img2c_lmsk.py" version="1.0.0">
-        <instance index="0">RTE\Acceleration\__img2c_lmsk.py</instance>
+        <instance index="0" removed="1">RTE\Acceleration\__img2c_lmsk.py</instance>
         <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
         <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
-        <targetInfos>
-          <targetInfo name="AC6-flash"/>
-        </targetInfos>
+        <targetInfos/>
       </file>
       <file attr="config" category="utility" name="tools\__img2c_zhRGB565.py" version="1.0.0">
-        <instance index="0">RTE\Acceleration\__img2c_zhRGB565.py</instance>
+        <instance index="0" removed="1">RTE\Acceleration\__img2c_zhRGB565.py</instance>
         <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
         <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
-        <targetInfos>
-          <targetInfo name="AC6-flash"/>
-        </targetInfos>
+        <targetInfos/>
       </file>
       <file attr="config" category="sourceC" name="examples\common\asset\alarm_clock_font32.c" version="1.1.0">
         <instance index="0" removed="1">RTE\Acceleration\alarm_clock_font32.c</instance>
@@ -608,32 +656,32 @@
       </file>
       <file attr="config" category="sourceC" name="Library\Source\arm_2d.c" version="1.5.0">
         <instance index="0">RTE\Acceleration\arm_2d.c</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.2.5" condition="CMSIS-DSP"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
       </file>
       <file attr="config" category="preIncludeGlobal" name="Library\Include\template\arm_2d_cfg.h" version="1.6.0">
         <instance index="0">RTE\Acceleration\arm_2d_cfg.h</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.2.5" condition="CMSIS-DSP"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
       </file>
       <file attr="config" category="sourceC" name="Helper\template\arm_2d_disp_adapter.c" version="4.4.3">
         <instance index="0">RTE\Acceleration\arm_2d_disp_adapter_0.c</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="Display Adapter" Cvendor="ARM" Cversion="4.4.4" condition="Arm-2D-Displayer-Adapter" maxInstances="8"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="Display Adapter" Cvendor="ARM" Cversion="4.4.3" condition="Arm-2D-Displayer-Adapter" maxInstances="8"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
       </file>
       <file attr="config" category="header" name="Helper\template\arm_2d_disp_adapter.h" version="4.4.3">
         <instance index="0">RTE\Acceleration\arm_2d_disp_adapter_0.h</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="Display Adapter" Cvendor="ARM" Cversion="4.4.4" condition="Arm-2D-Displayer-Adapter" maxInstances="8"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="Display Adapter" Cvendor="ARM" Cversion="4.4.3" condition="Arm-2D-Displayer-Adapter" maxInstances="8"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
@@ -1096,32 +1144,32 @@
       </file>
       <file attr="config" category="sourceC" name="examples\common\opcodes\arm_2d_user_opcode_draw_circle.c" version="1.1.0">
         <instance index="0">RTE\Acceleration\arm_2d_user_opcode_draw_circle.c</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.3.0" condition="Arm-2D-CORE"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.2.9" condition="Arm-2D-CORE"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
       </file>
       <file attr="config" category="header" name="examples\common\opcodes\arm_2d_user_opcode_draw_circle.h" version="1.1.0">
         <instance index="0">RTE\Acceleration\arm_2d_user_opcode_draw_circle.h</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.3.0" condition="Arm-2D-CORE"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.2.9" condition="Arm-2D-CORE"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
       </file>
       <file attr="config" category="sourceC" name="examples\common\opcodes\arm_2d_user_opcode_draw_line.c" version="1.3.0">
         <instance index="0">RTE\Acceleration\arm_2d_user_opcode_draw_line.c</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.3.0" condition="Arm-2D-CORE"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.2.9" condition="Arm-2D-CORE"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
       </file>
       <file attr="config" category="header" name="examples\common\opcodes\arm_2d_user_opcode_draw_line.h" version="1.3.0">
         <instance index="0">RTE\Acceleration\arm_2d_user_opcode_draw_line.h</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.3.0" condition="Arm-2D-CORE"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D Helper" Csub="PFB" Cvendor="ARM" Cversion="3.2.9" condition="Arm-2D-CORE"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
@@ -1223,12 +1271,10 @@
         <targetInfos/>
       </file>
       <file attr="config" category="utility" name="tools\gif2png.py" version="1.0.0">
-        <instance index="0">RTE\Acceleration\gif2png.py</instance>
+        <instance index="0" removed="1">RTE\Acceleration\gif2png.py</instance>
         <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
         <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
-        <targetInfos>
-          <targetInfo name="AC6-flash"/>
-        </targetInfos>
+        <targetInfos/>
       </file>
       <file attr="config" category="sourceC" name="examples\demos\girl_dance.c" version="4.1.0">
         <instance index="0" removed="1">RTE\Acceleration\girl_dance.c</instance>
@@ -1236,10 +1282,10 @@
         <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev317+g40b2a62"/>
         <targetInfos/>
       </file>
-      <file attr="config" category="utility" name="tools\img2c.py" version="2.1.0">
+      <file attr="config" category="utility" name="tools\img2c.py" version="1.4.0">
         <instance index="0">RTE\Acceleration\img2c.py</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.2.5" condition="CMSIS-DSP"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
@@ -1300,8 +1346,8 @@
       </file>
       <file attr="config" category="utility" name="tools\ttf2c.py" version="2.4.1">
         <instance index="0">RTE\Acceleration\ttf2c.py</instance>
-        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.3.0-dev" condition="CMSIS-DSP"/>
-        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev332+gb8ec557"/>
+        <component Cclass="Acceleration" Cgroup="Arm-2D" Csub="Core" Cvendor="ARM" Cversion="1.2.5" condition="CMSIS-DSP"/>
+        <package name="Arm-2D" schemaVersion="1.7.37" url="https://www.keil.com/pack/" vendor="ARM" version="1.2.6-dev243+g6dc9af1"/>
         <targetInfos>
           <targetInfo name="AC6-flash"/>
         </targetInfos>
