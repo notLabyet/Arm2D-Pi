@@ -46,6 +46,8 @@ typedef struct user_generic_loader_arc_param_t {
     uint16_t hwRingWidth;            /* grows inward from hwRadius */
     uint16_t hwColour;               /* RGB565 */
     int16_t iSweepAngle;             /* degrees: +CW, -CCW */
+    int16_t iSweepAngleQ10;          /* optional tenths of degrees: +CW, -CCW */
+    bool bRoundCaps;                 /* round start/end caps for partial arcs */
 } user_generic_loader_arc_param_t;
 
 typedef struct user_generic_loader_arc_cfg_t {

@@ -1,0 +1,98 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
+*.dep
+build_usb_check*/
+project/mdk/template.uvguix.*
+project/mdk/*.uvoptx
+project/mdk/Objects
+project/mdk/.mklink/
+project/mdk/*_build.log
+project/mdk/codex-*.log
+*.scvd
+!project/mdk/EventRecorderStub.scvd
+*.iex
+project/mdk/JLinkLog.txt
+project/mdk/template.uf2
+*._ac
+*.__i
+*@*
+
+*.00??
+
+project/mdk/RTE/PikaScript
+RTE_Components.h
+Pre_Include_*
+project/mdk/RTE/Acceleration/README.md
+project/mdk/RTE/Acceleration/img2c.py
+project/mdk/RTE/Acceleration/arm_2d.c
+project/mdk/RTE/Utilities/core_portme.c
+documents/Pictures/Thumbs.db
+_compile_check/
+
+# Large generated image assets are kept outside the repository.
+pic/girl.c
+pic/saber2.c
+
+#keil
+**/Objects/
+**/Listings/
+*@*
+*.[0-9][0-9][0-9][0-9]
+**/DebugConfig/
+*uvguix.*
+*.uvoptx
+project/mdk/Objects/*.axf
+project/mdk/Objects/*.bin
+project/mdk/Objects/*.htm
+Pre_Include_Global.h
+RTE_Components.h
+*.user
