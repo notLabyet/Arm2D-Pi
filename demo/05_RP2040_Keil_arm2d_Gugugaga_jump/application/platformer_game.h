@@ -60,6 +60,8 @@ typedef struct platformer_game_t {
     bool bJumpFlight;
     bool bJumpArmed;
     uint16_t hwGlideHoldMs;
+    uint8_t chLastRoute;
+    uint8_t chPreviousRoute;
     platformer_game_object_t tObjects[PLATFORMER_GAME_OBJECT_COUNT];
 } platformer_game_t;
 

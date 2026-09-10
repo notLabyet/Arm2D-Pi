@@ -398,6 +398,24 @@ int main(void) {
     assert(s.tDirtyRegionItems[PLATFORMER_DIRTY_REGION_FPS].suspended);
     __on_scene_platformer_frame_start((arm_2d_scene_t *)&s);
     assert(s.tDirtyRegionItems[PLATFORMER_DIRTY_REGION_FPS].suspended);
+    /* Check actual generated silhouettes, including short and long landings. */
+    for(unsigned wanted=0;wanted<8;wanted++) {
+        __platformer_reset_player(&s);__platformer_reset_foreground(&s);
+        bool found=false;
+        for(unsigned seed=1;seed<=10000;seed++) {
+            platformer_game_init(&s.tGame,198,90,clock_ms);
+            memset(s.tGame.tObjects,0,sizeof(s.tGame.tObjects));
+            s.tGame.wSectionIndex=3;s.tGame.wRandomState=seed;s.tGame.lNextSectionX=170;
+            s.tGame.chLastRoute=UINT8_MAX;s.tGame.chPreviousRoute=UINT8_MAX;
+            platformer_game_update(&s.tGame,clock_ms+10,0,false);
+            if(s.tGame.chLastRoute==wanted){found=true;break;}
+        }
+        assert(found);
+        s.tGame.lXQ8=(s.tGame.tObjects[0].lX-50)*256;
+        s.tSpeedControl.speed_milli=0;s.tGame.lNextSectionX=100000;key_held=false;
+        bg_refreshes++;tick(&s,10,false);
+        char name[40];snprintf(name,sizeof(name),"route_variant_%u.jsonl",wanted);draw(&s,name);
+    }
     /* Render a production-generated glide trail from its upper launch pad. */
     __platformer_reset_player(&s);__platformer_reset_foreground(&s);
     bool glide_route_found=false;
@@ -412,8 +430,8 @@ int main(void) {
         if(cookies==7){glide_route_found=true;break;}
     }
     assert(glide_route_found);
-    s.tGame.lXQ8=(s.tGame.tObjects[0].lX+192)*256;
-    s.tGame.lFootYQ8=126*256;s.tGame.lVelocityYQ8=0;s.tGame.bGrounded=true;
+    s.tGame.lXQ8=(s.tGame.tObjects[1].lX+s.tGame.tObjects[1].hwWidth-32)*256;
+    s.tGame.lFootYQ8=s.tGame.tObjects[1].iTop*256;s.tGame.lVelocityYQ8=0;s.tGame.bGrounded=true;
     s.tGame.lNextSectionX=100000;s.tSpeedControl.speed_milli=135000;
     key_held=false;tilt_deg10=0;
     bg_refreshes++;tick(&s,10,false);draw(&s,"glide_route_launch.jsonl");
@@ -471,7 +489,7 @@ def render(operations):
 
 for state in ['start','platform','cookies','count','glide_slow','glide_medium','glide_fast',
               'combo2','combo12','combo_expired','combo100','combo999',
-              'glide_route_launch','glide_route_flight','glide_route_combo']:
+              'glide_route_launch','glide_route_flight','glide_route_combo'] + [f'route_variant_{n}' for n in range(8)]:
     canvas=render([json.loads(line) for line in (work/f'{state}.jsonl').read_text().splitlines()])
     canvas.resize((960,720),Image.Resampling.NEAREST).save(work/f'{state}.png')
 print('Saved offline scene layout previews (font rasterization approximated).')

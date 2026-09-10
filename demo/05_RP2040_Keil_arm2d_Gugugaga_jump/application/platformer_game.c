@@ -26,7 +26,7 @@ typedef struct game_route_object_t {
  * whenever its rise is below 80 px; even a floor jump reaches up to 144 px.
  * Every route therefore has rewards above 144 px that need a platform jump.
  * Platforms stop at 72 px so the 64 px sprite stays on screen at jump apex. */
-static const game_route_object_t c_tRoutes[5][9] = {
+static const game_route_object_t c_tRoutes[8][9] = {
     {   /* Introduction: one wide landing, then jump again for the high reward. */
         {  0, 36, 112, PLATFORMER_GAME_PLATFORM},
         { 18, 100, 24, PLATFORMER_GAME_COOKIE},
@@ -53,12 +53,12 @@ static const game_route_object_t c_tRoutes[5][9] = {
     },
     {   /* Longer low landing followed by a tighter upper reward pair. */
         {  0, 44, 104, PLATFORMER_GAME_PLATFORM},
-        {136, 72,  88, PLATFORMER_GAME_PLATFORM},
+        {128, 72,  88, PLATFORMER_GAME_PLATFORM},
         { 24, 104, 24, PLATFORMER_GAME_COOKIE},
         { 96, 136, 24, PLATFORMER_GAME_COOKIE},
         {154, 156, 24, PLATFORMER_GAME_COOKIE},
         {190, 160, 24, PLATFORMER_GAME_COOKIE},
-        {270, 112, 24, PLATFORMER_GAME_COOKIE},
+        {248, 112, 24, PLATFORMER_GAME_COOKIE},
     },
     {   /* Climb to 72 px, jump from the edge, then hold through the air trail.
          * 48 px / 12 px steps follow a 160 px/s cruise at 40 px/s descent;
@@ -73,8 +73,65 @@ static const game_route_object_t c_tRoutes[5][9] = {
         {432, 112, 24, PLATFORMER_GAME_COOKIE},
         {480, 100, 24, PLATFORMER_GAME_COOKIE},
     },
+    {   /* A broad plateau: room to land, cruise, and choose the next jump. */
+        {  0, 44, 168, PLATFORMER_GAME_PLATFORM},
+        { 24, 108, 24, PLATFORMER_GAME_COOKIE},
+        { 80, 156, 24, PLATFORMER_GAME_COOKIE},
+        {128, 152, 24, PLATFORMER_GAME_COOKIE},
+        {184, 112, 24, PLATFORMER_GAME_COOKIE},
+    },
+    {   /* Three short, evenly rising landings rather than one tall step. */
+        {  0, 24,  72, PLATFORMER_GAME_PLATFORM},
+        { 96, 48,  72, PLATFORMER_GAME_PLATFORM},
+        {192, 72,  96, PLATFORMER_GAME_PLATFORM},
+        { 16,  88, 24, PLATFORMER_GAME_COOKIE},
+        {104, 120, 24, PLATFORMER_GAME_COOKIE},
+        {204, 156, 24, PLATFORMER_GAME_COOKIE},
+        {248, 160, 24, PLATFORMER_GAME_COOKIE},
+    },
+    {   /* Two detached low islands, with open ground between them. */
+        {  0, 40,  72, PLATFORMER_GAME_PLATFORM},
+        {144, 40, 104, PLATFORMER_GAME_PLATFORM},
+        { 20, 100, 24, PLATFORMER_GAME_COOKIE},
+        { 52, 148, 24, PLATFORMER_GAME_COOKIE},
+        {168, 104, 24, PLATFORMER_GAME_COOKIE},
+        {216, 156, 24, PLATFORMER_GAME_COOKIE},
+    },
 };
-static const uint8_t c_chRouteObjectCounts[5] = {4, 7, 7, 7, 9};
+static const uint8_t c_chRouteObjectCounts[8] = {4, 7, 7, 7, 9, 5, 7, 6};
+/* Both two-step routes share a family; changing their details is not enough
+ * to count as a new silhouette. Likewise the two single-platform routes. */
+static const uint8_t c_chRouteFamilies[8] = {0, 1, 2, 1, 3, 0, 4, 5};
+
+static unsigned __game_select_route(const platformer_game_t *ptGame, uint32_t wRandom)
+{
+    if (ptGame->wSectionIndex < 3u) {
+        return ptGame->wSectionIndex;
+    }
+    unsigned nTickets = 0;
+    for (unsigned n = 0; n < 8; n++) {
+        if ((ptGame->chLastRoute < 8u
+             && c_chRouteFamilies[n] == c_chRouteFamilies[ptGame->chLastRoute])
+        || (ptGame->chPreviousRoute < 8u
+             && c_chRouteFamilies[n] == c_chRouteFamilies[ptGame->chPreviousRoute])) {
+            continue;
+        }
+        nTickets += n == 4u ? 2u : 1u;
+    }
+    unsigned nPick = (wRandom >> 16) % nTickets;
+    for (unsigned n = 0; n < 8; n++) {
+        if ((ptGame->chLastRoute < 8u
+             && c_chRouteFamilies[n] == c_chRouteFamilies[ptGame->chLastRoute])
+        || (ptGame->chPreviousRoute < 8u
+             && c_chRouteFamilies[n] == c_chRouteFamilies[ptGame->chPreviousRoute])) {
+            continue;
+        }
+        unsigned nWeight = n == 4u ? 2u : 1u;
+        if (nPick < nWeight) { return n; }
+        nPick -= nWeight;
+    }
+    return 0;
+}
 
 static uint32_t __game_random(platformer_game_t *ptGame)
 {
@@ -123,9 +180,7 @@ static void __game_generate_course(platformer_game_t *ptGame)
     while (ptGame->lNextSectionX <= lPlayerX + GAME_LOOKAHEAD && nFree >= 7u) {
         uint32_t wPreviousRandom = ptGame->wRandomState;
         uint32_t wRandom = __game_random(ptGame);
-        unsigned nPattern = ptGame->wSectionIndex < 3u
-                            ? (unsigned)ptGame->wSectionIndex
-                            : 1u + (wRandom >> 16) % 4u;
+        unsigned nPattern = __game_select_route(ptGame, wRandom);
         int32_t lX = ptGame->lNextSectionX
                      + (int32_t)((wRandom >> 8) % 3u) * 8;
         unsigned nCount = c_chRouteObjectCounts[nPattern];
@@ -136,18 +191,28 @@ static void __game_generate_course(platformer_game_t *ptGame)
             break;
         }
 
+        /* Move platforms and their rewards together, keeping the authored
+         * landing relationships. The first three teaching sections stay fixed. */
+        int32_t lStretch = ptGame->wSectionIndex < 3u ? 100
+                           : 92 + (int32_t)((wRandom >> 10) % 3u) * 8;
+        int16_t iLower = ptGame->wSectionIndex < 3u ? 0
+                         : (int16_t)((wRandom >> 8) % 3u) * 4;
         for (unsigned n = 0; n < nCount; n++) {
             const game_route_object_t *ptObject = &c_tRoutes[nPattern][n];
-            __game_add_object(ptGame, lX + ptObject->iX, ptObject->chRise,
-                               ptObject->chWidth,
+            __game_add_object(ptGame, lX + ptObject->iX * lStretch / 100,
+                               ptObject->chRise - iLower,
+                               ptObject->chType == PLATFORMER_GAME_PLATFORM
+                                   ? ptObject->chWidth * lStretch / 100 : ptObject->chWidth,
                                ptObject->chType == PLATFORMER_GAME_PLATFORM
                                    ? 10u : PLATFORMER_GAME_COOKIE_SIZE,
                                ptObject->chType);
         }
         nFree -= nCount;
+        ptGame->chPreviousRoute = ptGame->chLastRoute;
+        ptGame->chLastRoute = (uint8_t)nPattern;
         ptGame->wSectionIndex++;
         ptGame->lNextSectionX += (nPattern == 4u ? 720 : 480)
-                                + (int32_t)((wRandom >> 24) % 3u) * 32;
+                                + (int32_t)((wRandom >> 24) % 6u) * 32;
     }
 }
 
@@ -316,6 +381,8 @@ void platformer_game_init(platformer_game_t *ptGame, int16_t iGroundY,
     ptGame->wLastUpdateMs = wNowMs;
     ptGame->lNextSectionX = iStartX + 180;
     ptGame->wRandomState = GAME_SEED ^ wNowMs;
+    ptGame->chLastRoute = UINT8_MAX;
+    ptGame->chPreviousRoute = UINT8_MAX;
     ptGame->bGrounded = true;
     ptGame->hwCoyoteMs = PLATFORMER_GAME_COYOTE_MS;
     ptGame->bJumpArmed = true;

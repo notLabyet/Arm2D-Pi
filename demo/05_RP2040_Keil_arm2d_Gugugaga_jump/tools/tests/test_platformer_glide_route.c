@@ -9,7 +9,7 @@ int main(void)
     pending.lNextSectionX=500;pending.lXQ8=100*256;pending.wSectionIndex=3;
     for(unsigned seed=1;;seed++) {
         uint32_t next=seed*UINT32_C(1664525)+UINT32_C(1013904223);
-        if(1u+(next>>16)%4u==4u){pending.wRandomState=seed;break;}
+        if(__game_select_route(&pending,next)==4u){pending.wRandomState=seed;break;}
     }
     for(unsigned n=0;n<8;n++)
         pending.tObjects[n]=(platformer_game_object_t){.lX=900,.hwWidth=24,.bActive=true};
