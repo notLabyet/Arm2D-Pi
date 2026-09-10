@@ -1,0 +1,13 @@
+_compile_check/
+__pycache__/
+*.pyc
+project/mdk/Objects/
+project/mdk/Listings/
+project/mdk/DebugConfig/
+project/mdk/*.uvoptx
+project/mdk/*uvguix.*
+project/mdk/*.log
+project/mdk/*.uf2
+project/mdk/*.scvd
+!project/mdk/EventRecorderStub.scvd
+*@*
