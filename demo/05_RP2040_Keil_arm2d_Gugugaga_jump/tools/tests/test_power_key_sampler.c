@@ -19,7 +19,6 @@ static void game_frame(platformer_game_t *g, unsigned ms, bool high)
     g->bGlideHeld=power_key_service_is_pressed();
     g->bGlideQualified=power_key_service_glide_ready();
     platformer_game_update(g,ms,0,power_key_service_consume_press());
-    power_key_service_set_airborne(!g->bGrounded);
 }
 int main(void)
 {

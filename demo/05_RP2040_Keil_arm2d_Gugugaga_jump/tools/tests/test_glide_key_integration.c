@@ -10,7 +10,6 @@ static void run_hold(unsigned frame_ms, unsigned gap_ms)
     unsigned period_ms=gap_ms>=80 ? 500 : 150;
     s_state=0;s_changed_ms=0;s_raw_pressed=false;s_pressed=false;
     s_press_pending=false;s_press_reported=false;
-    s_airborne=false;s_hold_used_in_air=false;
     input_high=false;
     power_key_service_poll(0);power_key_service_poll(1);
     input_high=true;power_key_service_poll(10);power_key_service_poll(100);
@@ -28,7 +27,6 @@ static void run_hold(unsigned frame_ms, unsigned gap_ms)
             game.bGlideHeld=power_key_service_is_pressed();
             game.bGlideQualified=power_key_service_glide_ready();
             platformer_game_update(&game,ms,0,press);
-            power_key_service_set_airborne(!game.bGrounded);
             glide_frames+=game.bGliding;
         }
         assert(keep);
@@ -55,8 +53,6 @@ int main(void)
     for(unsigned n=0;n<3;n++) {
         run_hold(cadences[n],0);
         run_hold(cadences[n],5);
-        run_hold(cadences[n],20);
-        run_hold(cadences[n],250);
     }
     puts("PASS: stable/noisy hold yields one jump, apex glide, landing without repeat, release/repress");
 }

@@ -18,7 +18,6 @@ static void frame(platformer_game_t *g)
     /* Same debounced-edge handoff as the production scene. */
     if(p)g->bJumpArmed=true;
     platformer_game_update(g,now,0,p);
-    power_key_service_set_airborne(!g->bGrounded);
     jumps+=before&&!g->bGrounded;
     glides+=g->bGliding;
 }

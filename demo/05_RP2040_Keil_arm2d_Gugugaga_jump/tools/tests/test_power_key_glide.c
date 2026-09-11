@@ -21,13 +21,12 @@ int main(void)
     power_key_service_poll(106);
     assert(power_key_service_is_pressed() && power_key_service_consume_press());
     assert(!power_key_service_consume_press());
-    power_key_service_set_airborne(true);
     power_key_service_poll(1500);
     assert(keep && power_key_service_is_pressed());
     /* Touchdown during the same hold cannot suddenly switch power off. */
-    power_key_service_set_airborne(false); power_key_service_poll(2500);
+    power_key_service_poll(2500);
     assert(keep);
-    /* A short release bounce must not clear the inhibit latch. */
+    /* A short release bounce must not switch power off. */
     input_high=true; power_key_service_poll(2501);
     input_high=false; power_key_service_poll(2506); power_key_service_poll(3600);
     assert(keep);
@@ -37,9 +36,9 @@ int main(void)
     assert(!power_key_service_is_pressed());
     /* A fresh hold on the ground still retains the original shutdown action. */
     input_high=false; power_key_service_poll(4000); power_key_service_poll(4020);
-    power_key_service_poll(4999); assert(keep);
-    power_key_service_poll(5000);
+    power_key_service_poll(8999); assert(keep);
+    power_key_service_poll(9000);
     assert(!keep && !power_key_service_is_pressed());
-    puts("PASS: startup exclusion, debounce, one press, airborne/landing hold, bounce, fresh ground shutdown");
+    puts("PASS: startup exclusion, debounce, one press, airborne/landing hold, bounce, five-second shutdown");
     return 0;
 }

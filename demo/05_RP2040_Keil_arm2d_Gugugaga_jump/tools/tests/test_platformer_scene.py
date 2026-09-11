@@ -111,7 +111,6 @@ static bool power_key_service_glide_ready(void) { return key_held; }
 void power_key_service_get_audit(power_key_audit_t *out) { *out=(power_key_audit_t){.edges=clock_ms/250, .age_ms=(uint16_t)(clock_ms%250), .sio_changes=4, .pad_changes=4, .sio_seen=3, .pad_seen=3, .window_ms=1000}; }
 static uint16_t power_key_service_max_sample_gap_ms(void) { return 1; }
 static void power_key_service_get_pulse_ms(uint16_t *low, uint16_t *high) { *low=115; *high=35; }
-static void power_key_service_set_airborne(bool airborne) { (void)airborne; }
 static bool power_key_service_consume_press(void) { bool p=key_press; key_press=false; return p; }
 static int64_t arm_2d_helper_get_system_timestamp(void) { return clock_ms; }
 static int64_t arm_2d_helper_convert_ticks_to_ms(int64_t t) { return t; }

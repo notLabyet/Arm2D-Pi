@@ -26,8 +26,8 @@ bool power_key_service_glide_ready(void);
 uint16_t power_key_service_max_sample_gap_ms(void);
 /* Last completed low/high intervals, saturated at 9999 ms. Poll resolution. */
 void power_key_service_get_pulse_ms(uint16_t *low_ms, uint16_t *high_ms);
-/* Inhibit shutdown for the current hold while an airborne game uses it. */
-void power_key_service_set_airborne(bool airborne);
+/* A fresh hold after startup releases POWER_KEEP_PIN after 5 seconds,
+ * independently of game state. Confirmed release restarts that timer. */
 
 #ifdef __cplusplus
 }

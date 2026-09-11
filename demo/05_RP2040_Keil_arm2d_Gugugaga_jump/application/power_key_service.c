@@ -13,7 +13,7 @@
 #define POWER_KEY_GLIDE_HOLD_MS         220u
 /* Short release debounce; re-arm promptly after an intentional release. */
 #define POWER_KEY_RELEASE_MS            12u
-#define POWER_KEY_OFF_HOLD_MS           1000u
+#define POWER_KEY_OFF_HOLD_MS           5000u
 
 enum {
     POWER_KEY_START = 0,
@@ -30,8 +30,7 @@ static volatile bool s_raw_pressed;
 static volatile bool s_pressed;
 static volatile bool s_press_pending;
 static volatile bool s_press_reported;
-static volatile bool s_airborne;
-static volatile bool s_hold_used_in_air;
+static volatile uint32_t s_hold_started_ms;
 static volatile uint16_t s_last_low_ms, s_last_high_ms, s_max_sample_gap_ms;
 static volatile uint16_t s_continuous_low_ms;
 static int s_alarm_num = -1;
@@ -173,16 +172,6 @@ bool power_key_service_is_raw_pressed(void)
     return s_raw_pressed;
 }
 
-void power_key_service_set_airborne(bool airborne)
-{
-    uint32_t irq_state = save_and_disable_interrupts();
-    s_airborne = airborne;
-    if (airborne && s_pressed) {
-        s_hold_used_in_air = true;
-    }
-    restore_interrupts(irq_state);
-}
-
 void power_key_service_poll(uint32_t now_ms)
 {
     bool raw_pressed;
@@ -272,22 +261,21 @@ void power_key_service_poll(uint32_t now_ms)
 
         case POWER_KEY_READY:
             if (s_pressed) {
-                if (s_airborne) {
-                    s_hold_used_in_air = true;
-                }
                 if (!s_press_reported) {
+                    s_hold_started_ms = s_changed_ms;
                     s_press_pending = true;
                     s_press_reported = true;
                 }
-                if (s_raw_pressed && !s_hold_used_in_air
-                &&  (uint32_t)(now_ms - s_changed_ms) >= POWER_KEY_OFF_HOLD_MS) {
+                /* Five seconds always powers off, including during/after a jump.
+                 * Contact bounce does not restart the debounced hold. */
+                if (s_raw_pressed
+                &&  (uint32_t)(now_ms - s_hold_started_ms) >= POWER_KEY_OFF_HOLD_MS) {
                     s_press_pending = false;
                     s_state = POWER_KEY_OFF;
                     gpio_put(POWER_KEEP_PIN, 0);
                 }
             } else {
                 s_press_reported = false;
-                s_hold_used_in_air = false;
             }
             break;
 

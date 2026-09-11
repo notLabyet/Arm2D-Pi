@@ -672,7 +672,6 @@ static void __platformer_reset_player(user_scene_platformer_t *ptThis)
     this.bWalking = false;
     this.wFPSWindowMs = wNowMs;
     (void)power_key_service_consume_press();
-    power_key_service_set_airborne(false);
     this.lAnimationTimestamp = 0;
     __platformer_set_animation_frame(ptThis, PLATFORMER_ANIMATION_IDLE, 0);
 }
@@ -703,7 +702,6 @@ static void __platformer_update_player(user_scene_platformer_t *ptThis)
         this.tGame.bJumpArmed = true;
     }
     platformer_game_update(&this.tGame, wNowMs, iSpeedPps, bJumpPressed);
-    power_key_service_set_airborne(!this.tGame.bGrounded);
     this.lPlayerWorldX = this.tGame.lXQ8 / PLATFORMER_GAME_Q8;
     lCameraTarget = this.lPlayerWorldX - PLATFORMER_CAMERA_FOLLOW_X;
     if (lCameraTarget > this.lCameraWorldX) {
@@ -786,7 +784,6 @@ static void __on_scene_platformer_depose(arm_2d_scene_t *ptScene)
 {
     user_scene_platformer_t *ptThis = (user_scene_platformer_t *)ptScene;
 
-    power_key_service_set_airborne(false);
     arm_2d_helper_dirty_region_remove_items(
         &this.use_as__arm_2d_scene_t.tDirtyRegionHelper,
         this.tDirtyRegionItems,
