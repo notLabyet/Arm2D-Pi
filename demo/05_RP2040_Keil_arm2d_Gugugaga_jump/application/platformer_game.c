@@ -408,6 +408,8 @@ void platformer_game_update(platformer_game_t *ptGame, uint32_t wNowMs,
     if (bJumpPressed && ptGame->bJumpArmed) {
         ptGame->bJumpArmed = false;
         ptGame->hwBufferMs = PLATFORMER_GAME_BUFFER_MS;
+        /* A fresh press starts its own hold, even after a release between frames. */
+        ptGame->hwGlideHoldMs = 0;
     }
     if (wElapsedMs > GAME_MAX_CATCHUP_MS) {
         wElapsedMs = GAME_MAX_CATCHUP_MS;

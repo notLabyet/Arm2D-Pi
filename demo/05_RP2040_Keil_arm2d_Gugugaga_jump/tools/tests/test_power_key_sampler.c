@@ -45,8 +45,8 @@ int main(void)
     }
     assert(g.bGliding && g.lVelocityYQ8<=40*256);
     game_frame(&g,1460,true);
-    assert(g.bGliding); /* bridge the measured 250 ms high phase */
-    game_frame(&g,1731,true);
+    assert(g.bGliding); /* less than the 12 ms contact debounce */
+    game_frame(&g,1470,true);
     assert(!g.bGliding); /* confirmed release ends glide */
     tick_to(1800,true);
     assert(power_key_service_max_sample_gap_ms()==1);
@@ -67,5 +67,5 @@ int main(void)
         host_time_us+=6000;host_alarm_callback(0);
     }
     assert(power_key_service_glide_ready()); /* recurring >5ms gaps cannot starve hold */
-    puts("PASS: timer captures 12ms tap during game stall, no short-hop glide, 300ms game hold, 40px/s cap, 280ms held release, short-tap release stays 30ms, delayed-IRQ accumulation");
+    puts("PASS: timer captures 12ms tap during game stall, no short-hop glide, 300ms game hold, 40px/s cap, 12ms release for both taps and holds, delayed-IRQ accumulation");
 }

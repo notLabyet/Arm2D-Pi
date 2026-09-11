@@ -16,9 +16,9 @@ int main(void)
     power_key_service_poll(0); power_key_service_poll(1);
     input_high=true; power_key_service_poll(10); power_key_service_poll(30);
     assert(keep && !power_key_service_consume_press());
-    input_high=false; power_key_service_poll(100); power_key_service_poll(107);
+    input_high=false; power_key_service_poll(100); power_key_service_poll(105);
     assert(!power_key_service_is_pressed());
-    power_key_service_poll(108);
+    power_key_service_poll(106);
     assert(power_key_service_is_pressed() && power_key_service_consume_press());
     assert(!power_key_service_consume_press());
     power_key_service_set_airborne(true);
@@ -31,9 +31,9 @@ int main(void)
     input_high=true; power_key_service_poll(2501);
     input_high=false; power_key_service_poll(2506); power_key_service_poll(3600);
     assert(keep);
-    input_high=true; power_key_service_poll(3610); power_key_service_poll(3639);
+    input_high=true; power_key_service_poll(3610); power_key_service_poll(3621);
     assert(power_key_service_is_pressed());
-    power_key_service_poll(3640);
+    power_key_service_poll(3622);
     assert(!power_key_service_is_pressed());
     /* A fresh hold on the ground still retains the original shutdown action. */
     input_high=false; power_key_service_poll(4000); power_key_service_poll(4020);

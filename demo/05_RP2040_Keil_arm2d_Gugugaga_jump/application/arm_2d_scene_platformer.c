@@ -696,8 +696,13 @@ static void __platformer_update_player(user_scene_platformer_t *ptThis)
     this.bRawJumpHeld = power_key_service_is_raw_pressed();
     this.tGame.bGlideHeld = power_key_service_is_pressed();
     this.tGame.bGlideQualified = power_key_service_glide_ready();
-    platformer_game_update(&this.tGame, wNowMs, iSpeedPps,
-                             power_key_service_consume_press());
+    bool bJumpPressed = power_key_service_consume_press();
+    /* The sampler only reports a fresh debounced edge. Its intervening release
+     * may fall entirely between display frames, so explicitly re-arm here. */
+    if (bJumpPressed) {
+        this.tGame.bJumpArmed = true;
+    }
+    platformer_game_update(&this.tGame, wNowMs, iSpeedPps, bJumpPressed);
     power_key_service_set_airborne(!this.tGame.bGrounded);
     this.lPlayerWorldX = this.tGame.lXQ8 / PLATFORMER_GAME_Q8;
     lCameraTarget = this.lPlayerWorldX - PLATFORMER_CAMERA_FOLLOW_X;

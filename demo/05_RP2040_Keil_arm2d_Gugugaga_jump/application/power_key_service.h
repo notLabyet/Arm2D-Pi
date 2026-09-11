@@ -21,7 +21,7 @@ bool power_key_service_consume_press(void);
 bool power_key_service_is_pressed(void);
 /* Cached sample for diagnostics; does not access GPIO from the draw path. */
 bool power_key_service_is_raw_pressed(void);
-/* Qualified hold bridges measured 250 ms high gaps until held-release confirmation. */
+/* Qualified hold tolerates contact bounce; confirmed release clears it in 12 ms. */
 bool power_key_service_glide_ready(void);
 uint16_t power_key_service_max_sample_gap_ms(void);
 /* Last completed low/high intervals, saturated at 9999 ms. Poll resolution. */

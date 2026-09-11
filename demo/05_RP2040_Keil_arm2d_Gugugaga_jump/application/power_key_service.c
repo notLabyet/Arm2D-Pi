@@ -9,12 +9,10 @@
 #include "hardware/structs/padsbank0.h"
 
 #define POWER_KEY_DEBOUNCE_MS           20u
-#define POWER_KEY_PRESS_MS              8u
+#define POWER_KEY_PRESS_MS              6u
 #define POWER_KEY_GLIDE_HOLD_MS         220u
 /* Short release debounce; re-arm promptly after an intentional release. */
-#define POWER_KEY_RELEASE_MS            30u
-/* Provisional compatibility for reported U/L readings; electrical cause unverified. */
-#define POWER_KEY_HELD_RELEASE_MS       280u
+#define POWER_KEY_RELEASE_MS            12u
 #define POWER_KEY_OFF_HOLD_MS           1000u
 
 enum {
@@ -234,12 +232,10 @@ void power_key_service_poll(uint32_t now_ms)
         s_raw_pressed = raw_pressed;
         s_changed_ms = now_ms;
     }
-    /* Keep quick press response, but do not split a hold into new presses
-     * when the power-key input briefly returns high. Startup is unchanged. */
+    /* Stable hardware needs only contact debounce, including after long holds.
+     * Never bridge the former 250 ms electrical interruptions. */
     uint32_t debounce_ms = s_state == POWER_KEY_READY
-                        ? (s_raw_pressed ? POWER_KEY_PRESS_MS
-                           : (s_continuous_low_ms >= POWER_KEY_GLIDE_HOLD_MS
-                              ? POWER_KEY_HELD_RELEASE_MS : POWER_KEY_RELEASE_MS))
+                        ? (s_raw_pressed ? POWER_KEY_PRESS_MS : POWER_KEY_RELEASE_MS)
                         : POWER_KEY_DEBOUNCE_MS;
     if ((uint32_t)(now_ms - s_changed_ms) >= debounce_ms) {
         s_pressed = s_raw_pressed;

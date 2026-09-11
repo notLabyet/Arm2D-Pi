@@ -442,6 +442,16 @@ int main(void) {
     }
     assert(s.tGame.wCookies==6 && s.tGame.hwCombo==6);
     draw(&s,"glide_route_combo.jsonl");
+    /* A debounced new edge must re-arm even if the released level was never
+     * visible to the scene between frames. Exercise the actual scene handoff. */
+    memset(s.tGame.tObjects,0,sizeof(s.tGame.tObjects));
+    s.tGame.lNextSectionX=100000;s.tSpeedControl.speed_milli=0;
+    s.tGame.lFootYQ8=198*256;s.tGame.lVelocityYQ8=0;
+    s.tGame.bGrounded=true;s.tGame.bJumpArmed=false;s.tGame.hwBufferMs=0;
+    s.tGame.hwGlideHoldMs=300;key_held=true;
+    tick(&s,24,true);
+    assert(!s.tGame.bGrounded && !s.tGame.bGliding && s.tGame.hwGlideHoldMs<=30);
+    puts("PASS scene: fresh sampled edge re-arms across an unseen release");
     fclose(audit);
     printf("METRICS frames=%u dry_run_ops=%u score_clip_ops=%u\n",frames,dry_ops,clipped_ops);
     puts("PASS scene: level cruise and hidden diagnostic refresh");
